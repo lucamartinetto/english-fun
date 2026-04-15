@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<title>English Fun!</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:linear-gradient(135deg,#EEEDFE,#E1F5EE);}
+button{cursor:pointer;font-family:inherit;}
+input{font-family:inherit;}
+.screen{display:none;min-height:100vh;padding:20px;flex-direction:column;}
+.screen.active{display:flex;}
+#screen-splash{align-items:center;justify-content:center;}
+#screen-result{align-items:center;justify-content:center;}
+.card{background:white;border-radius:24px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 4px 24px rgba(0,0,0,0.09);}
+.btn-primary{width:100%;padding:16px 0;background:#534AB7;color:white;border:none;border-radius:16px;font-size:18px;font-weight:800;margin-bottom:8px;}
+.level-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:520px;margin:0 auto;}
+.level-btn{aspect-ratio:1;border-radius:14px;border:2px solid #534AB7;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#534AB7;}
+.level-btn.phrase{background:#EEEDFE;}
+.level-btn.locked{border-color:#ddd;opacity:0.45;cursor:not-allowed;background:#f5f5f5;color:#aaa;}
+.word-card{background:white;border-radius:28px;padding:28px 22px;width:100%;max-width:480px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.09);}
+.btn-listen{background:#9FE1CB;color:#085041;border:none;border-radius:20px;padding:10px 20px;font-size:15px;font-weight:700;}
+.btn-slow{background:#E1F5EE;color:#085041;border:none;border-radius:20px;padding:10px 20px;font-size:15px;font-weight:700;}
+.btn-speak{background:#534AB7;color:white;border:none;border-radius:20px;padding:15px 0;font-size:18px;font-weight:800;width:100%;}
+.btn-next{background:#534AB7;color:white;border:none;border-radius:12px;padding:9px 18px;font-size:13px;font-weight:700;}
+.btn-retry-word{background:#EEEDFE;color:#534AB7;border:none;border-radius:12px;padding:9px 16px;font-size:13px;font-weight:600;}
+.btn-hear{background:#E6F1FB;color:#042C53;border:none;border-radius:12px;padding:9px 16px;font-size:13px;font-weight:600;}
+.recording-box{background:#FCEBEB;border-radius:16px;padding:16px;color:#A32D2D;font-weight:700;font-size:16px;text-align:center;}
+.loading-box{color:#534AB7;font-weight:600;padding:16px;text-align:center;}
+.feedback-good{background:#EAF3DE;color:#3B6D11;}
+.feedback-mid{background:#FAEEDA;color:#633806;}
+.feedback-bad{background:#FCEBEB;color:#A32D2D;}
+.feedback-box{padding:12px 16px;border-radius:14px;font-size:14px;font-weight:600;line-height:1.5;margin-top:10px;}
+.progress-bar{width:100%;height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden;margin-bottom:8px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,#7F77DD,#9FE1CB);border-radius:4px;transition:width 0.4s;}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.top-btn{background:none;border:none;font-size:20px;cursor:pointer;}
+.lb-entry{background:white;border-radius:16px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 10px rgba(0,0,0,0.06);}
+.mode-btn{flex:1;padding:14px 0;border-radius:16px;border:2px solid #ddd;background:white;font-weight:700;font-size:14px;color:#888;}
+.mode-active-baby{border-color:#534AB7 !important;background:#EEEDFE !important;color:#534AB7 !important;}
+.mode-active-explorer{border-color:#185FA5 !important;background:#E6F1FB !important;color:#185FA5 !important;}
+input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14px;border-radius:12px;border:2px solid #CECBF6;margin-top:8px;margin-bottom:16px;outline:none;}
+.result-card{background:white;border-radius:28px;padding:32px 24px;width:100%;max-width:400px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.09);}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="screen-splash" class="screen active">
+  <div style="text-align:center;margin-bottom:24px">
+    <div style="font-size:72px">🌟</div>
+    <h1 style="font-size:38px;font-weight:800;color:#534AB7;margin:8px 0 4px">English Fun!</h1>
+    <p style="color:#888">Learn English step by step</p>
+  </div>
+  <div class="card">
+    <label style="font-size:14px;color:#555;font-weight:600">What's your name?</label>
+    <input type="text" id="name-input" placeholder="Enter your name..." maxlength="20"/>
+    <label style="font-size:14px;color:#555;font-weight:600">Choose your mode:</label>
+    <div style="display:flex;gap:12px;margin:10px 0 20px">
+      <button class="mode-btn mode-active-baby" id="btn-baby" onclick="setMode('baby')">🐣 Baby<br><small>age 5</small></button>
+      <button class="mode-btn" id="btn-explorer" onclick="setMode('explorer')">🚀 Explorer<br><small>age 10</small></button>
+    </div>
+    <button class="btn-primary" onclick="goLevels()">Let's Go! 🚀</button>
+    <div style="text-align:center;margin-top:8px">
+      <button style="background:none;border:none;color:#888;font-size:15px;cursor:pointer" onclick="showScreen('leaderboard')">🏆 Leaderboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEVELS -->
+<div id="screen-levels" class="screen">
+  <div class="top-bar">
+    <button class="top-btn" onclick="showScreen('splash')">← Back</button>
+    <span id="hi-name" style="font-weight:700;color:#534AB7;font-size:15px"></span>
+    <button class="top-btn" onclick="showScreen('leaderboard')">🏆</button>
+  </div>
+  <h2 style="text-align:center;color:#534AB7;margin-bottom:6px">Choose a Level</h2>
+  <p style="text-align:center;font-size:13px;color:#aaa;margin-bottom:20px">Complete a level to unlock the next one</p>
+  <div class="level-grid" id="level-grid"></div>
+  <p style="text-align:center;margin-top:16px;font-size:13px;color:#888">🔤 Words (lv 1-29) · 📝 Phrases (lv 30-50)</p>
+</div>
+
+<!-- PLAY -->
+<div id="screen-play" class="screen">
+  <div class="top-bar">
+    <button class="top-btn" onclick="showScreen('levels')">← Levels</button>
+    <span id="play-info" style="font-weight:700;color:#534AB7;font-size:14px"></span>
+    <button class="top-btn" onclick="showScreen('splash')">🏠</button>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  <div id="word-results" style="display:flex;gap:6px;margin-bottom:14px"></div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <div id="loading-words" style="text-align:center;display:none">
+      <div style="font-size:52px">⏳</div>
+      <div style="color:#534AB7;font-weight:700;margin-top:12px;font-size:18px">Loading level...</div>
+      <div style="color:#888;font-size:13px;margin-top:4px">AI is creating your words!</div>
+    </div>
+    <div id="mic-denied" style="display:none;background:white;border-radius:24px;padding:28px;text-align:center;max-width:400px;width:100%">
+      <div style="font-size:52px">🎤❌</div>
+      <h3 style="color:#A32D2D;margin:12px 0 8px">Microphone blocked</h3>
+      <p style="color:#888;font-size:14px;line-height:1.6">Allow microphone in Chrome:<br><br><strong>Tap the 🔒 icon</strong> in the address bar → Permissions → Microphone → Allow<br><br>Then tap Try Again.</p>
+      <button onclick="retryMic()" style="background:#534AB7;color:white;border:none;border-radius:14px;padding:12px 24px;font-weight:700;margin-top:16px;font-size:15px">Try Again</button>
+    </div>
+    <div id="mic-unsupported" style="display:none;background:white;border-radius:24px;padding:28px;text-align:center;max-width:400px;width:100%">
+      <div style="font-size:52px">😞</div>
+      <h3 style="color:#A32D2D;margin:12px 0 8px">Browser not supported</h3>
+      <p style="color:#888;font-size:14px">Please use <strong>Google Chrome</strong> on your tablet.</p>
+    </div>
+    <div class="word-card" id="word-card" style="display:none">
+      <div id="word-emoji" style="font-size:88px;line-height:1.1;margin-bottom:10px"></div>
+      <div id="word-text" style="font-size:36px;font-weight:800;color:#534AB7;margin-bottom:4px;line-height:1.25"></div>
+      <div id="word-hint" style="font-size:13px;color:#bbb;margin-bottom:22px;font-style:italic"></div>
+      <div style="display:flex;gap:10px;justify-content:center;margin-bottom:18px;flex-wrap:wrap">
+        <button class="btn-listen" onclick="doSpeak(false)">🔊 Listen</button>
+        <button class="btn-slow" onclick="doSpeak(true)">🐢 Slow</button>
+      </div>
+      <div id="rec-idle"><button class="btn-speak" onclick="startRecord()">🎤 Speak now!</button></div>
+      <div id="rec-recording" class="recording-box" style="display:none">🔴 Listening... speak clearly!</div>
+      <div id="rec-loading" class="loading-box" style="display:none">⏳ Analysing pronunciation...</div>
+      <div id="rec-done" style="display:none;text-align:center">
+        <div id="stars-row" style="font-size:28px;letter-spacing:3px;margin-bottom:4px"></div>
+        <div id="feedback-box" class="feedback-box"></div>
+        <div id="transcript-box" style="margin-top:6px;font-size:12px;color:#bbb"></div>
+        <div style="display:flex;gap:8px;margin-top:14px;justify-content:center;flex-wrap:wrap">
+          <button class="btn-hear" onclick="doSpeak(false)">🔊 Hear</button>
+          <button class="btn-retry-word" onclick="retryWord()">🔁 Retry</button>
+          <button class="btn-next" id="btn-next-word" onclick="nextWord()">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div id="screen-result" class="screen">
+  <div class="result-card">
+    <div id="result-emoji" style="font-size:72px"></div>
+    <h2 id="result-title" style="font-size:28px;font-weight:800;color:#534AB7;margin:8px 0"></h2>
+    <p id="result-sub" style="color:#888;margin-bottom:16px"></p>
+    <div id="result-dots" style="display:flex;justify-content:center;gap:10px;margin-bottom:20px"></div>
+    <div id="result-score" style="border-radius:14px;padding:12px 0;margin-bottom:20px;font-weight:700;font-size:16px;text-align:center"></div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button id="btn-next-level" class="btn-primary" onclick="nextLevel()" style="display:none"></button>
+      <button onclick="retryLevel()" style="background:white;color:#534AB7;border:2px solid #534AB7;border-radius:16px;padding:12px 0;font-size:15px;font-weight:700;width:100%">🔁 Retry Level</button>
+      <button onclick="showScreen('levels')" style="background:none;color:#aaa;border:none;font-size:14px;cursor:pointer;margin-top:2px">Choose another level</button>
+    </div>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="screen-leaderboard" class="screen">
+  <div class="top-bar">
+    <button class="top-btn" id="lb-back-btn" onclick="lbBack()">← Back</button>
+    <h2 style="color:#534AB7;font-size:20px">🏆 Leaderboard</h2>
+    <button class="top-btn" style="color:#ccc" onclick="togglePin()">⚙️</button>
+  </div>
+  <div id="pin-panel" style="display:none;background:white;border-radius:20px;padding:20px;margin-bottom:16px;text-align:center">
+    <div style="font-weight:700;margin-bottom:8px;color:#534AB7">Admin PIN</div>
+    <input type="password" id="pin-input" placeholder="Enter PIN" style="width:60%;text-align:center"/>
+    <div id="pin-error" style="color:red;font-size:13px;margin-bottom:6px;display:none">Wrong PIN!</div>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button onclick="doReset()" style="background:#FCEBEB;color:#A32D2D;border:none;border-radius:10px;padding:8px 18px;font-weight:700">Reset All</button>
+      <button onclick="togglePin()" style="background:#eee;border:none;border-radius:10px;padding:8px 18px;cursor:pointer">Cancel</button>
+    </div>
+  </div>
+  <div id="lb-list" style="max-width:480px;margin:0 auto;width:100%"></div>
+</div>
+
+<script>
+var SUPERUSER_PIN = "1234";
+var CLAUDE_MODEL = "claude-sonnet-4-20250514";
+
+var state = {
+  playerName: "Player",
+  mode: "baby",
+  level: 1,
+  unlockedUpTo: 1,
+  words: [],
+  wordIdx: 0,
+  results: [],
+  leaderboard: []
+};
+
+function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+function sSet(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }
+
+function loadStorage() {
+  var lb = sGet("ef_lb"); if (lb) { try { state.leaderboard = JSON.parse(lb); } catch(e) {} }
+  var ul = sGet("ef_unlocked"); if (ul) { state.unlockedUpTo = parseInt(ul) || 1; }
+  var pn = sGet("ef_player"); if (pn) { state.playerName = pn; document.getElementById("name-input").value = pn; }
+}
+
+function saveStorage() {
+  sSet("ef_lb", JSON.stringify(state.leaderboard));
+  sSet("ef_unlocked", String(state.unlockedUpTo));
+  sSet("ef_player", state.playerName);
+}
+
+var voices = [];
+function loadVoices() { voices = window.speechSynthesis.getVoices(); }
+window.speechSynthesis.onvoiceschanged = loadVoices;
+loadVoices();
+
+function getBestVoice() {
+  var v = window.speechSynthesis.getVoices();
+  return v.find(function(x){ return x.name.indexOf("Samantha")>-1 || x.name.indexOf("Karen")>-1 || x.name.indexOf("Google US English")>-1; })
+      || v.find(function(x){ return x.lang==="en-US" && x.name.toLowerCase().indexOf("compact")===-1; })
+      || v.find(function(x){ return x.lang.indexOf("en")===0; })
+      || null;
+}
+
+function doSpeak(slow) {
+  var w = state.words[state.wordIdx];
+  if (!w) return;
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(w.text);
+  u.lang = "en-US"; u.rate = slow ? 0.65 : 0.82; u.pitch = 1.05; u.volume = 1;
+  var v = getBestVoice(); if (v) u.voice = v;
+  var delay = slow ? 0 : 600;
+  setTimeout(function(){
+    // prime the synth with a silent utterance first time
+    var primer = new SpeechSynthesisUtterance(" ");
+    primer.volume = 0;
+    window.speechSynthesis.speak(primer);
+    primer.onend = function(){
+      var u2 = new SpeechSynthesisUtterance(w.text);
+      u2.lang = "en-US"; u2.rate = slow ? 0.65 : 0.82; u2.pitch = 1.05; u2.volume = 1;
+      var v2 = getBestVoice(); if (v2) u2.voice = v2;
+      window.speechSynthesis.speak(u2);
+    };
+  }, delay);
+}
+
+function showScreen(id) {
+  var screens = document.querySelectorAll(".screen");
+  for (var i=0; i<screens.length; i++) screens[i].classList.remove("active");
+  document.getElementById("screen-"+id).classList.add("active");
+  if (id === "levels") renderLevels();
+  if (id === "leaderboard") renderLeaderboard();
+}
+
+function setMode(m) {
+  state.mode = m;
+  document.getElementById("btn-baby").className = "mode-btn" + (m==="baby"?" mode-active-baby":"");
+  document.getElementById("btn-explorer").className = "mode-btn" + (m==="explorer"?" mode-active-explorer":"");
+}
+
+function goLevels() {
+  var n = document.getElementById("name-input").value.trim();
+  state.playerName = n || "Player";
+  saveStorage();
+  document.getElementById("hi-name").textContent = "Hi, " + state.playerName + "! 👋";
+  showScreen("levels");
+}
+
+function lbBack() {
+  showScreen(state.playerName ? "levels" : "splash");
+}
+
+var ALL_TOPICS = [
+  "animals","colors","food","family","home","school","body","weather",
+  "clothes","transport","numbers","shapes","sports","toys","nature",
+  "emotions","jobs","places","music","science","space","ocean","farm","city","jungle"
+];
+
+var LEVEL_CONFIG = (function(){
+  var configs = [];
+  for (var i=0; i<50; i++) {
+    var lvl = i+1;
+    var isPhrase = lvl >= 30;
+    configs.push({ lvl:lvl, isPhrase:isPhrase });
+  }
+  return configs;
+})();
+
+function renderLevels() {
+  var g = document.getElementById("level-grid");
+  g.innerHTML = "";
+  for (var i=0; i<50; i++) {
+    var l = i+1;
+    var unlocked = l <= state.unlockedUpTo;
+    var cfg = LEVEL_CONFIG[i];
+    var btn = document.createElement("button");
+    if (unlocked) {
+      btn.className = "level-btn" + (cfg.isPhrase ? " phrase" : "");
+      btn.innerHTML = (cfg.isPhrase ? "<span style='font-size:11px;color:#aaa'>📝</span><br>" : "") + l;
+      (function(lv){ btn.onclick = function(){ startLevel(lv); }; })(l);
+    } else {
+      btn.className = "level-btn locked";
+      btn.innerHTML = "🔒";
+      btn.disabled = true;
+    }
+    g.appendChild(btn);
+  }
+}
+
+function startLevel(lvl) {
+  state.level = lvl;
+  state.wordIdx = 0;
+  state.results = [];
+  showScreen("play");
+  document.getElementById("play-info").textContent = "Level "+lvl+" · Word 1/5";
+  document.getElementById("loading-words").style.display = "block";
+  document.getElementById("word-card").style.display = "none";
+  document.getElementById("mic-denied").style.display = "none";
+  document.getElementById("mic-unsupported").style.display = "none";
+  updateProgress();
+  fetchWords(lvl);
+}
+
+function fetchWords(lvl) {
+  var isPhrase = lvl >= 30;
+  var isBaby = state.mode === "baby";
+
+  // Pick 1 random topic per fetch — guarantees variety across retries
+  var topic = ALL_TOPICS[Math.floor(Math.random() * ALL_TOPICS.length)];
+
+  var modeGuide, phoneticGuide;
+
+  if (isBaby) {
+    modeGuide = "a 5-year-old Italian child, complete beginner. ONLY very short, high-frequency English words. Fun, concrete, visual topics.";
+    if (lvl<=5)  phoneticGuide = "CVC words only: cat, dog, red, big, cup. Maximum 3 letters. No difficult sounds.";
+    else if (lvl<=10) phoneticGuide = "1-2 syllable common words. Avoid 'th','w','r'. Example: ball, fish, bed, jump, cake.";
+    else if (lvl<=15) phoneticGuide = "1-2 syllables. Introduce 'w' sound (water, warm). Still avoid 'th'.";
+    else if (lvl<=20) phoneticGuide = "Introduce 'th' (this, that). Simple blends: bl, cl, fl. Words like: blue, cloud, three.";
+    else if (lvl<=25) phoneticGuide = "Common words with silent letters or tricky spelling: knife, know, walk, talk.";
+    else if (lvl<=29) phoneticGuide = "Mix all sounds. Short 2-word combos like 'big dog', 'red apple' are ok.";
+    else if (lvl<=35) phoneticGuide = "Simple 3-4 word phrases: 'I like cats', 'She is happy', 'I have a dog'.";
+    else if (lvl<=42) phoneticGuide = "4-5 word sentences, present tense: 'The cat is sleeping', 'I want some milk'.";
+    else              phoneticGuide = "5-6 word simple sentences: 'Can I have some water?', 'I go to school every day'.";
+  } else {
+    modeGuide = "a 10-year-old Italian child with basic English. Use progressively harder vocabulary and pronunciation. Challenge them.";
+    if (lvl<=5)  phoneticGuide = "2-syllable words with clear phonetics. Example: garden, window, monkey, purple, tiger.";
+    else if (lvl<=10) phoneticGuide = "Include 'th' (think, both) and 'w' (world, window). 2-3 syllables.";
+    else if (lvl<=15) phoneticGuide = "Words with 'r' (river, wrong), 'æ' (cat, black, had). 2-3 syllables.";
+    else if (lvl<=20) phoneticGuide = "Add 'ʃ' (shoe, wash), 'tʃ' (church, catch), 'dʒ' (judge, engine). 3 syllables.";
+    else if (lvl<=25) phoneticGuide = "Tricky: ough (through, though), silent letters, irregular stress. 3-4 syllables.";
+    else if (lvl<=29) phoneticGuide = "Clusters: str (street), spr (spring), complex vowels: beautiful, thoroughly. 4 syllables.";
+    else if (lvl<=35) phoneticGuide = "Short A2 phrases with tricky sounds: 'She brought three things', 'I usually walk there'.";
+    else if (lvl<=42) phoneticGuide = "Medium phrases with reductions: 'I want to go to the park', 'What are you doing?'";
+    else              phoneticGuide = "Longer A2 phrases with connected speech: 'What do you usually do on weekends?', 'I think it\\'s really interesting.'";
+  }
+
+  var seed = Math.random().toString(36).slice(2,10);
+
+  var prompt = "You are generating English learning content. Generate exactly 5 unique English "
+    + (isPhrase ? "phrases" : "words") + " for " + modeGuide + "\n"
+    + "Level: " + lvl + " out of 50. Topic: " + topic + ".\n"
+    + "Pronunciation difficulty: " + phoneticGuide + "\n"
+    + "Rules:\n"
+    + "- All 5 must be DIFFERENT from each other\n"
+    + "- All 5 must fit the topic '" + topic + "'\n"
+    + "- Strictly follow the pronunciation difficulty for level " + lvl + "\n"
+    + "- " + (isBaby ? "Baby mode: SIMPLE, SHORT, FUN" : "Explorer mode: CHALLENGING, VARIED, EDUCATIONAL") + "\n"
+    + "- Seed for variety: " + seed + "\n"
+    + "Respond ONLY with a valid JSON array, no markdown, no extra text:\n"
+    + '[{"text":"...","emoji":"...","hint":"..."},...]\n'
+    + "hint = Italian translation, max 4 words.";
+
+  fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      model: CLAUDE_MODEL,
+      max_tokens: 1000,
+      messages: [{role:"user", content:prompt}]
+    })
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    var txt = "";
+    for (var i=0; i<data.content.length; i++) {
+      if (data.content[i].type==="text") { txt = data.content[i].text; break; }
+    }
+    txt = txt.replace(/```json/g,"").replace(/```/g,"").trim();
+    state.words = JSON.parse(txt).slice(0,5);
+    document.getElementById("loading-words").style.display = "none";
+    renderWord();
+  })
+  .catch(function(err){
+    document.getElementById("loading-words").innerHTML =
+      '<div style="color:#A32D2D;font-size:13px;padding:12px;background:#FCEBEB;border-radius:12px;max-width:400px;word-break:break-all">'
+      + '<strong>API Error:</strong><br>' + (err ? err.toString() : "unknown") + '</div>';
+  });
+}
+
+function renderWord() {
+  var w = state.words[state.wordIdx];
+  if (!w) return;
+  document.getElementById("word-card").style.display = "block";
+  document.getElementById("word-emoji").textContent = w.emoji;
+  document.getElementById("word-text").textContent = w.text;
+  document.getElementById("word-text").style.fontSize = w.text.length > 15 ? "22px" : "36px";
+  document.getElementById("word-hint").textContent = w.hint;
+  document.getElementById("play-info").textContent = "Level "+state.level+" · Word "+(state.wordIdx+1)+"/5";
+  document.getElementById("btn-next-word").textContent = (state.wordIdx+1 >= 5) ? "Finish ✅" : "Next →";
+  setRecState("idle");
+  updateProgress();
+}
+
+function updateProgress() {
+  document.getElementById("progress-fill").style.width = (state.wordIdx/5*100)+"%";
+  var r = document.getElementById("word-results");
+  r.innerHTML = "";
+  for (var i=0; i<5; i++) {
+    var s = document.createElement("span");
+    s.style.fontSize = "14px";
+    s.textContent = i < state.results.length ? (state.results[i]>=4?"✅":"❌") : "⬜";
+    r.appendChild(s);
+  }
+}
+
+function setRecState(s) {
+  var ids = ["idle","recording","loading","done"];
+  for (var i=0; i<ids.length; i++) {
+    var el = document.getElementById("rec-"+ids[i]);
+    if (el) el.style.display = (ids[i]===s) ? "block" : "none";
+  }
+}
+
+function startRecord() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    document.getElementById("mic-unsupported").style.display = "block";
+    document.getElementById("word-card").style.display = "none";
+    return;
+  }
+  // Chrome manages mic permission internally via SpeechRecognition — no getUserMedia needed
+  doRecord();
+}
+
+function doRecord() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    document.getElementById("mic-unsupported").style.display = "block";
+    document.getElementById("word-card").style.display = "none";
+    return;
+  }
+  var rec = new SR();
+  rec.lang = "en-US"; rec.interimResults = false; rec.maxAlternatives = 5; rec.continuous = false;
+  setRecState("recording");
+  var finished = false;
+
+  function finish(alts) {
+    if (finished) return;
+    finished = true;
+    clearTimeout(safetyTimer);
+    if (!alts || alts.length === 0) {
+      state.results.push(1);
+      updateProgress();
+      document.getElementById("stars-row").innerHTML = starsHTML(1);
+      document.getElementById("feedback-box").textContent = "Couldn't hear you. Try again! 🎤";
+      document.getElementById("feedback-box").className = "feedback-box feedback-bad";
+      document.getElementById("transcript-box").textContent = "";
+      setRecState("done");
+      return;
+    }
+    document.getElementById("transcript-box").textContent = 'You said: "'+alts[0]+'"';
+    setRecState("loading");
+    analyse(alts, state.words[state.wordIdx].text);
+  }
+
+  rec.onresult = function(e) {
+    var alts = [];
+    for (var i=0; i<e.results[0].length; i++) alts.push(e.results[0][i].transcript.trim());
+    finish(alts);
+  };
+
+  rec.onerror = function(e) {
+    if (e.error === "not-allowed") {
+      micStream = null;
+      document.getElementById("mic-denied").style.display = "block";
+      document.getElementById("word-card").style.display = "none";
+      finished = true;
+      clearTimeout(safetyTimer);
+    } else {
+      finish([]);
+    }
+  };
+
+  rec.onend = function() { finish([]); };
+
+  try { rec.start(); } catch(e) { finish([]); return; }
+
+  // Safety timeout: if nothing happens in 8s, force finish
+  var safetyTimer = setTimeout(function(){ try{ rec.stop(); }catch(e){} finish([]); }, 8000);
+}
+
+function retryMic() {
+  document.getElementById("mic-denied").style.display = "none";
+  document.getElementById("word-card").style.display = "block";
+}
+
+function starsHTML(n) {
+  var s = "";
+  for (var i=0; i<5; i++) s += '<span style="opacity:'+(i<n?1:0.15)+'">⭐</span>';
+  return s;
+}
+
+function analyse(alts, target) {
+  var age = state.mode === "baby" ? "5" : "10";
+  var prompt = 'You are a friendly English pronunciation coach for a '+age+' year old Italian child.\n'
+    + 'Target: "'+target+'"\n'
+    + 'Speech engine alternatives: '+JSON.stringify(alts)+'\n'
+    + 'Be STRICT: only award 4-5 stars for genuinely accurate pronunciation from a native-English perspective. '
+    + 'An Italian accent or mispronounced phonemes must reduce the score. '
+    + 'Stars: 1=incomprehensible, 2=very wrong, 3=understandable but clearly incorrect, 4=good with minor accent, 5=near-native.\n'
+    + 'Respond ONLY with JSON (no markdown):\n'
+    + '{"stars":N,"feedback":"<max 18 words, child-friendly>","tip":"<one short tip if stars<4, else empty>"}';
+
+  fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({model:CLAUDE_MODEL, max_tokens:1000, messages:[{role:"user",content:prompt}]})
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    var txt = "";
+    for (var i=0; i<data.content.length; i++) {
+      if (data.content[i].type==="text") { txt = data.content[i].text; break; }
+    }
+    txt = txt.replace(/```json/g,"").replace(/```/g,"").trim();
+    var p = JSON.parse(txt);
+    var s = Math.max(1, Math.min(5, p.stars||1));
+    var msg = (p.feedback||"Good try!") + (p.tip ? " 💡 "+p.tip : "");
+    showFeedback(s, msg);
+  })
+  .catch(function(){
+    var said = alts[0].toLowerCase();
+    var tgt = target.toLowerCase();
+    var match = said.indexOf(tgt)>-1 || tgt.indexOf(said)>-1;
+    showFeedback(match?4:2, match?"Great pronunciation! 🌟":"Almost! Try saying \""+target+"\" again.");
+  });
+}
+
+function showFeedback(s, msg) {
+  state.results.push(s);
+  updateProgress();
+  document.getElementById("stars-row").innerHTML = starsHTML(s);
+  var fb = document.getElementById("feedback-box");
+  fb.textContent = msg;
+  fb.className = "feedback-box " + (s>=4?"feedback-good":s>=2?"feedback-mid":"feedback-bad");
+  document.getElementById("btn-next-word").textContent = (state.wordIdx+1>=5) ? "Finish ✅" : "Next →";
+  setRecState("done");
+}
+
+function retryWord() {
+  // Remove the result for the current word index if it exists
+  if (state.results.length > state.wordIdx) {
+    state.results.splice(state.wordIdx, 1);
+  }
+  document.getElementById("transcript-box").textContent = "";
+  document.getElementById("stars-row").innerHTML = "";
+  document.getElementById("feedback-box").textContent = "";
+  updateProgress();
+  setRecState("idle");
+}
+
+function nextWord() {
+  if (state.wordIdx+1 >= 5) { showResult(); return; }
+  state.wordIdx++;
+  renderWord();
+}
+
+function showResult() {
+  var good = 0;
+  for (var i=0; i<state.results.length; i++) if (state.results[i]>=4) good++;
+  var passed = good >= 4;
+  var total = 0;
+  for (var i=0; i<state.results.length; i++) total += state.results[i];
+
+  if (passed && state.level >= state.unlockedUpTo) {
+    state.unlockedUpTo = Math.min(50, state.level+1);
+  }
+  if (passed) {
+    state.leaderboard.push({name:state.playerName, level:state.level, score:total, date:new Date().toLocaleDateString("it-IT")});
+    state.leaderboard.sort(function(a,b){ return b.level-a.level || b.score-a.score; });
+    if (state.leaderboard.length > 20) state.leaderboard = state.leaderboard.slice(0,20);
+  }
+  saveStorage();
+
+  document.getElementById("result-emoji").textContent = passed ? "🏆" : "💪";
+  document.getElementById("result-title").textContent = passed ? "Level Passed!" : "Keep Trying!";
+  document.getElementById("result-sub").textContent = passed ? "Level "+(state.level+1)+" is now unlocked! 🔓" : "You need 4/5 words. You got "+good+"/5.";
+
+  var sc = document.getElementById("result-score");
+  sc.textContent = good+"/5 correct · Score: "+total+"/25";
+  sc.style.background = passed ? "#EAF3DE" : "#FAECE7";
+  sc.style.color = passed ? "#3B6D11" : "#993C1D";
+
+  var dots = document.getElementById("result-dots");
+  dots.innerHTML = "";
+  for (var i=0; i<state.results.length; i++) {
+    var d = document.createElement("div");
+    d.style.textAlign = "center";
+    d.innerHTML = (state.results[i]>=4?"✅":"❌")+"<div style='font-size:11px;color:#aaa'>"+state.results[i]+"⭐</div>";
+    dots.appendChild(d);
+  }
+
+  var nb = document.getElementById("btn-next-level");
+  if (passed && state.level < 50) {
+    nb.style.display = "block";
+    nb.textContent = "Next Level "+(state.level+1)+" →";
+  } else {
+    nb.style.display = "none";
+  }
+
+  showScreen("result");
+}
+
+function nextLevel() { startLevel(state.level+1); }
+function retryLevel() { startLevel(state.level); }
+
+function renderLeaderboard() {
+  var list = document.getElementById("lb-list");
+  if (!state.leaderboard.length) {
+    list.innerHTML = '<div style="text-align:center;color:#aaa;margin-top:60px;font-size:18px">No scores yet!<br>Complete a level to appear here 🌟</div>';
+    return;
+  }
+  var medals = ["🥇","🥈","🥉"];
+  var html = "";
+  for (var i=0; i<state.leaderboard.length; i++) {
+    var e = state.leaderboard[i];
+    var medal = medals[i] || (i+1)+"."
+    html += '<div class="lb-entry">'
+      + '<div style="font-size:22px;min-width:32px;text-align:center">'+medal+'</div>'
+      + '<div style="flex:1"><div style="font-weight:700;color:#534AB7;font-size:16px">'+e.name+'</div>'
+      + '<div style="font-size:12px;color:#aaa">'+e.date+'</div></div>'
+      + '<div style="text-align:right"><div style="font-weight:800;color:#534AB7;font-size:18px">Lv '+e.level+'</div>'
+      + '<div style="font-size:12px;color:#888">Score: '+e.score+'</div></div></div>';
+  }
+  list.innerHTML = html;
+}
+
+function togglePin() {
+  var p = document.getElementById("pin-panel");
+  p.style.display = p.style.display==="none" ? "block" : "none";
+  document.getElementById("pin-error").style.display = "none";
+}
+
+function doReset() {
+  if (document.getElementById("pin-input").value === SUPERUSER_PIN) {
+    state.leaderboard = [];
+    state.unlockedUpTo = 1;
+    saveStorage();
+    document.getElementById("pin-error").style.display = "none";
+    togglePin();
+    renderLeaderboard();
+  } else {
+    document.getElementById("pin-error").style.display = "block";
+  }
+}
+
+loadStorage();
+</script>
+</body>
+</html>
