@@ -197,8 +197,7 @@ function loadPlayerName() {
 }
 
 function loadModeData() {
-  var ul = sGet(mkKey("unlocked"));
-  state.unlockedUpTo = ul ? (parseInt(ul) || 1) : 1;
+function doSpeak() {  state.unlockedUpTo = ul ? (parseInt(ul) || 1) : 1;
   var lb = sGet(mkKey("lb"));
   state.leaderboard = lb ? (JSON.parse(lb) || []) : [];
 }
@@ -224,8 +223,9 @@ function getBestVoice() {
 }
 
 // Speak with adaptive delay — longer for short words, extra long on first call
-var _speakCount = 0;
-function doSpeak(slow) {
+var _audioUnlocked = false;
+function unlockAudio() {
+function doSpeak() {
   var w = state.words[state.wordIdx];
   if (!w) return;
   window.speechSynthesis.cancel();
