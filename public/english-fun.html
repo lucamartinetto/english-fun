@@ -4,6 +4,10 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
 <title>English Fun!</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#534AB7">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:linear-gradient(135deg,#EEEDFE,#E1F5EE);}
@@ -169,7 +173,9 @@ input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14p
 
 <script>
 var SUPERUSER_PIN = "1234";
-var CLAUDE_MODEL = "claude-sonnet-4-5";
+var CLAUDE_MODEL = "claude-sonnet-4-20250514";
+// Cambia questo URL con il tuo URL Railway dopo il deploy
+var API_URL = "https://TUO-PROGETTO.railway.app/api/claude";
 
 var state = {
   playerName: "Player",
@@ -358,7 +364,7 @@ function fetchWords(lvl) {
     + '[{"text":"...","emoji":"...","hint":"..."},...]\n'
     + "hint = Italian translation, max 4 words.";
 
-  fetch("https://english-fun-production.up.railway.app/api/claude", {
+  fetch(API_URL, {
     method: "POST",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({
@@ -509,7 +515,7 @@ function analyse(alts, target) {
     + 'Respond ONLY with JSON (no markdown):\n'
     + '{"stars":N,"feedback":"<max 18 words, child-friendly>","tip":"<one short tip if stars<4, else empty>"}';
 
-  fetch("https://english-fun-production.up.railway.app/api/claude", {
+  fetch(API_URL, {
     method: "POST",
     headers: {"Content-Type":"application/json"},
     body: JSON.stringify({model:CLAUDE_MODEL, max_tokens:1000, messages:[{role:"user",content:prompt}]})
@@ -652,7 +658,7 @@ function doReset() {
   }
 }
 
-loadStorage();
+loadStorage(); // only loads player name on startup
 </script>
 </body>
 </html>
