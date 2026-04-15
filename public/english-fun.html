@@ -19,8 +19,8 @@ input{font-family:inherit;}
 #screen-result{align-items:center;justify-content:center;}
 .card{background:white;border-radius:24px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 4px 24px rgba(0,0,0,0.09);}
 .btn-primary{width:100%;padding:16px 0;background:#534AB7;color:white;border:none;border-radius:16px;font-size:18px;font-weight:800;margin-bottom:8px;}
-.level-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-width:520px;margin:0 auto;}
-.level-btn{aspect-ratio:1;border-radius:14px;border:2px solid #534AB7;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#534AB7;}
+.level-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:480px;margin:0 auto;}
+.level-btn{aspect-ratio:1;border-radius:18px;border:2px solid #534AB7;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#534AB7;min-height:72px;}
 .level-btn.phrase{background:#EEEDFE;}
 .level-btn.locked{border-color:#ddd;opacity:0.45;cursor:not-allowed;background:#f5f5f5;color:#aaa;}
 .word-card{background:white;border-radius:28px;padding:28px 22px;width:100%;max-width:480px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.09);}
@@ -306,7 +306,7 @@ function renderLevels() {
     var btn = document.createElement("button");
     if (unlocked) {
       btn.className = "level-btn" + (isPhrase ? " phrase" : "");
-      btn.innerHTML = (isPhrase ? "<span style='font-size:11px;color:#aaa'>📝</span><br>" : "") + l;
+      btn.innerHTML = (isPhrase ? "<span style='font-size:13px;color:#888'>📝</span><br>" : "") + l;
       (function(lv) { btn.onclick = function() { startLevel(lv); }; })(l);
     } else {
       btn.className = "level-btn locked";
