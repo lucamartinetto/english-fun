@@ -415,6 +415,7 @@ function setRecState(s) {
 }
 
 function startRecord() {
+  unlockAudio(); // sblocca audio anche al click del mic
   var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) {
     document.getElementById("mic-unsupported").style.display = "block";
