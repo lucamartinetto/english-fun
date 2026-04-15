@@ -170,6 +170,7 @@ input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14p
 var SUPERUSER_PIN = "1234";
 var CLAUDE_MODEL = "claude-haiku-4-5-20251001";
 var API_URL = "https://english-fun-production.up.railway.app/api/claude";
+var APP_TOKEN = "GiulioSofia1621!";
 
 var state = {
   playerName: "Player",
@@ -358,7 +359,7 @@ function fetchWords(lvl) {
 
   fetch(API_URL, {
     method:"POST",
-    headers:{"Content-Type":"application/json"},
+    headers:{"Content-Type":"application/json","x-app-token":APP_TOKEN},
     body:JSON.stringify({model:CLAUDE_MODEL, max_tokens:1000, messages:[{role:"user",content:prompt}]})
   })
   .then(function(res){ return res.json(); })
@@ -513,7 +514,7 @@ function analyse(alts, target) {
 
   fetch(API_URL, {
     method:"POST",
-    headers:{"Content-Type":"application/json"},
+    headers:{"Content-Type":"application/json","x-app-token":APP_TOKEN},
     body:JSON.stringify({model:CLAUDE_MODEL, max_tokens:1000, messages:[{role:"user",content:prompt}]})
   })
   .then(function(res){ return res.json(); })
