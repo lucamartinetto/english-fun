@@ -223,15 +223,19 @@ function getBestVoice() {
     || null;
 }
 
-// Speak with adaptive delay — longer for short words
+// Speak with adaptive delay — longer for short words, extra long on first call
+var _speakCount = 0;
 function doSpeak(slow) {
   var w = state.words[state.wordIdx];
   if (!w) return;
   window.speechSynthesis.cancel();
   var len = w.text.replace(/\s/g,"").length;
+  // First ever speak gets extra 800ms for synth to warm up
+  var warmup = (_speakCount === 0) ? 800 : 0;
+  _speakCount++;
   var delay = slow ? 400 : (len <= 3 ? 1000 : len <= 5 ? 800 : len <= 8 ? 600 : 400);
+  delay += warmup;
   setTimeout(function(){
-    // prime synth first to avoid clipping
     var primer = new SpeechSynthesisUtterance(" ");
     primer.volume = 0; primer.rate = 1;
     primer.onend = function(){
@@ -427,35 +431,17 @@ function doRecord() {
     return;
   }
 
-  // 3-second countdown before mic activates
-  setRecState("recording");
-  var countdown = 3;
-  var box = document.getElementById("rec-recording");
-  box.textContent = "🎤 Get ready... " + countdown;
-
-  var timer = setInterval(function(){
-    countdown--;
-    if (countdown > 0) {
-      box.textContent = "🎤 Get ready... " + countdown;
-    } else {
-      clearInterval(timer);
-      box.textContent = "🔴 Speak now!";
-      startListening();
-    }
-  }, 1000);
-}
-
-function startListening() {
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  // Start mic FIRST, then show countdown while it warms up
   var rec = new SR();
   rec.lang = "en-US"; rec.interimResults = false; rec.maxAlternatives = 5; rec.continuous = false;
   var finished = false;
+  var started = false;
 
   function finish(alts) {
     if (finished) return;
     finished = true;
     clearTimeout(safetyTimer);
-    if (!alts || alts.length===0) {
+    if (!alts || alts.length === 0) {
       state.results.push(1);
       updateProgress();
       document.getElementById("stars-row").innerHTML = starsHTML(1);
@@ -483,8 +469,25 @@ function startListening() {
     } else { finish([]); }
   };
   rec.onend = function() { finish([]); };
+
+  // Start mic immediately
   try { rec.start(); } catch(e) { finish([]); return; }
   var safetyTimer = setTimeout(function(){ try{rec.stop();}catch(e){} finish([]); }, 9000);
+
+  // Show countdown AFTER mic is started (2 seconds while mic warms up)
+  setRecState("recording");
+  var box = document.getElementById("rec-recording");
+  var countdown = 2;
+  box.textContent = "🎤 Get ready... " + countdown;
+  var timer = setInterval(function(){
+    countdown--;
+    if (countdown > 0) {
+      box.textContent = "🎤 Get ready... " + countdown;
+    } else {
+      clearInterval(timer);
+      box.textContent = "🔴 Speak now!";
+    }
+  }, 1000);
 }
 
 function retryMic() {
@@ -502,8 +505,9 @@ function analyse(alts, target) {
   var age = state.mode==="baby"?"5":"10";
   var prompt = 'You are a friendly English pronunciation coach for a '+age+' year old Italian child.\n'
     +'Target: "'+target+'"\nSpeech engine alternatives: '+JSON.stringify(alts)+'\n'
-    +'Be STRICT: only 4-5 stars for genuinely accurate pronunciation. Italian accent or mispronounced phonemes must reduce score.\n'
-    +'Stars: 1=incomprehensible, 2=very wrong, 3=understandable but incorrect, 4=good with minor accent, 5=near-native.\n'
+    +'Be firm but fair: award 4 stars for clearly understandable pronunciation even with Italian accent. '
+    +'Reserve 5 stars for near-native. Give 3 stars if the word is recognizable but sounds quite different. '
+    +'Stars: 1=incomprehensible, 2=very wrong, 3=recognizable but quite off, 4=good (minor accent ok), 5=near-native.\n'
     +'Respond ONLY with JSON (no markdown):\n'
     +'{"stars":N,"feedback":"<max 18 words, child-friendly>","tip":"<one short tip if stars<4, else empty>"}';
 
@@ -596,18 +600,38 @@ function nextLevel(){ startLevel(state.level+1); }
 function retryLevel(){ startLevel(state.level); }
 
 function renderLeaderboard() {
+  // Merge leaderboards from ALL modes for current player for display
+  var allEntries = [];
+  var modes = ["baby","explorer"];
+  var savedMode = state.mode;
+  modes.forEach(function(m){
+    state.mode = m;
+    var lb = sGet(mkKey("lb"));
+    if (lb) {
+      try {
+        var entries = JSON.parse(lb);
+        entries.forEach(function(e){ if (!e.mode) e.mode = m; });
+        allEntries = allEntries.concat(entries);
+      } catch(e){}
+    }
+  });
+  state.mode = savedMode;
+  allEntries.sort(function(a,b){ return b.level-a.level||b.score-a.score; });
+  allEntries = allEntries.slice(0,20);
+
   var list = document.getElementById("lb-list");
-  if (!state.leaderboard.length) {
+  if (!allEntries.length) {
     list.innerHTML='<div style="text-align:center;color:#aaa;margin-top:60px;font-size:18px">No scores yet!<br>Complete a level to appear here 🌟</div>';
     return;
   }
   var medals=["🥇","🥈","🥉"], html="";
-  for (var i=0; i<state.leaderboard.length; i++) {
-    var e=state.leaderboard[i];
+  for (var i=0; i<allEntries.length; i++) {
+    var e=allEntries[i];
+    var modeLabel = e.mode==="baby"?"🐣 Baby":"🚀 Explorer";
     html+='<div class="lb-entry">'
       +'<div style="font-size:22px;min-width:32px;text-align:center">'+(medals[i]||(i+1)+".")+'</div>'
       +'<div style="flex:1"><div style="font-weight:700;color:#534AB7;font-size:16px">'+e.name+'</div>'
-      +'<div style="font-size:12px;color:#aaa">'+(e.mode||"")+" · "+e.date+'</div></div>'
+      +'<div style="font-size:12px;color:#aaa">'+modeLabel+" · "+e.date+'</div></div>'
       +'<div style="text-align:right"><div style="font-weight:800;color:#534AB7;font-size:18px">Lv '+e.level+'</div>'
       +'<div style="font-size:12px;color:#888">Score: '+e.score+'</div></div></div>';
   }
