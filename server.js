@@ -29,6 +29,7 @@ app.post("/api/claude", async (req, res) => {
     }
 });
 
+app.get("/.well-known/assetlinks.json", (req, res) => { res.json([{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"app.railway.up.english_fun_production.twa","sha256_cert_fingerprints":["PLACEHOLDER"]}}]); });
 app.get("/health", (req, res) => res.json({ status: "ok" }));
 
 const PORT = process.env.PORT || 3000;
