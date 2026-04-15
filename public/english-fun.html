@@ -50,7 +50,6 @@ input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14p
 </head>
 <body>
 
-<!-- SPLASH -->
 <div id="screen-splash" class="screen active">
   <div style="text-align:center;margin-bottom:24px">
     <div style="font-size:72px">🌟</div>
@@ -72,7 +71,6 @@ input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14p
   </div>
 </div>
 
-<!-- LEVELS -->
 <div id="screen-levels" class="screen">
   <div class="top-bar">
     <button class="top-btn" onclick="showScreen('splash')">← Back</button>
@@ -85,7 +83,6 @@ input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14p
   <p style="text-align:center;margin-top:16px;font-size:13px;color:#888">🔤 Words (lv 1-29) · 📝 Phrases (lv 30-50)</p>
 </div>
 
-<!-- PLAY -->
 <div id="screen-play" class="screen">
   <div class="top-bar">
     <button class="top-btn" onclick="showScreen('levels')">← Levels</button>
@@ -120,7 +117,7 @@ input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14p
         <button class="btn-slow" onclick="doSpeak(true)">🐢 Slow</button>
       </div>
       <div id="rec-idle"><button class="btn-speak" onclick="startRecord()">🎤 Speak now!</button></div>
-      <div id="rec-recording" class="recording-box" style="display:none">🔴 Listening... speak clearly!</div>
+      <div id="rec-recording" class="recording-box" style="display:none">🎤 Get ready... 3</div>
       <div id="rec-loading" class="loading-box" style="display:none">⏳ Analysing pronunciation...</div>
       <div id="rec-done" style="display:none;text-align:center">
         <div id="stars-row" style="font-size:28px;letter-spacing:3px;margin-bottom:4px"></div>
@@ -136,7 +133,6 @@ input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14p
   </div>
 </div>
 
-<!-- RESULT -->
 <div id="screen-result" class="screen">
   <div class="result-card">
     <div id="result-emoji" style="font-size:72px"></div>
@@ -152,10 +148,9 @@ input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14p
   </div>
 </div>
 
-<!-- LEADERBOARD -->
 <div id="screen-leaderboard" class="screen">
   <div class="top-bar">
-    <button class="top-btn" id="lb-back-btn" onclick="lbBack()">← Back</button>
+    <button class="top-btn" onclick="lbBack()">← Back</button>
     <h2 style="color:#534AB7;font-size:20px">🏆 Leaderboard</h2>
     <button class="top-btn" style="color:#ccc" onclick="togglePin()">⚙️</button>
   </div>
@@ -174,7 +169,6 @@ input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14p
 <script>
 var SUPERUSER_PIN = "1234";
 var CLAUDE_MODEL = "claude-haiku-4-5-20251001";
-// Cambia questo URL con il tuo URL Railway dopo il deploy
 var API_URL = "https://english-fun-production.up.railway.app/api/claude";
 
 var state = {
@@ -188,21 +182,34 @@ var state = {
   leaderboard: []
 };
 
+// Storage keys include player name AND mode — fully separate sessions
+function mkKey(k) {
+  var p = state.playerName.toLowerCase().replace(/[^a-z0-9]/g,"_");
+  return "ef_" + k + "_" + p + "_" + state.mode;
+}
+
 function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
 function sSet(k,v) { try { localStorage.setItem(k,v); } catch(e) {} }
 
-function loadStorage() {
-  var lb = sGet("ef_lb"); if (lb) { try { state.leaderboard = JSON.parse(lb); } catch(e) {} }
-  var ul = sGet("ef_unlocked"); if (ul) { state.unlockedUpTo = parseInt(ul) || 1; }
-  var pn = sGet("ef_player"); if (pn) { state.playerName = pn; document.getElementById("name-input").value = pn; }
+function loadPlayerName() {
+  var pn = sGet("ef_player");
+  if (pn) { state.playerName = pn; document.getElementById("name-input").value = pn; }
 }
 
-function saveStorage() {
-  sSet("ef_lb", JSON.stringify(state.leaderboard));
-  sSet("ef_unlocked", String(state.unlockedUpTo));
+function loadModeData() {
+  var ul = sGet(mkKey("unlocked"));
+  state.unlockedUpTo = ul ? (parseInt(ul) || 1) : 1;
+  var lb = sGet(mkKey("lb"));
+  state.leaderboard = lb ? (JSON.parse(lb) || []) : [];
+}
+
+function saveAll() {
   sSet("ef_player", state.playerName);
+  sSet(mkKey("unlocked"), String(state.unlockedUpTo));
+  sSet(mkKey("lb"), JSON.stringify(state.leaderboard));
 }
 
+// Voice
 var voices = [];
 function loadVoices() { voices = window.speechSynthesis.getVoices(); }
 window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -211,86 +218,79 @@ loadVoices();
 function getBestVoice() {
   var v = window.speechSynthesis.getVoices();
   return v.find(function(x){ return x.name.indexOf("Samantha")>-1 || x.name.indexOf("Karen")>-1 || x.name.indexOf("Google US English")>-1; })
-      || v.find(function(x){ return x.lang==="en-US" && x.name.toLowerCase().indexOf("compact")===-1; })
-      || v.find(function(x){ return x.lang.indexOf("en")===0; })
-      || null;
+    || v.find(function(x){ return x.lang==="en-US" && x.name.toLowerCase().indexOf("compact")===-1; })
+    || v.find(function(x){ return x.lang.indexOf("en")===0; })
+    || null;
 }
 
+// Speak with adaptive delay — longer for short words
 function doSpeak(slow) {
   var w = state.words[state.wordIdx];
   if (!w) return;
   window.speechSynthesis.cancel();
-  var u = new SpeechSynthesisUtterance(w.text);
-  u.lang = "en-US"; u.rate = slow ? 0.65 : 0.82; u.pitch = 1.05; u.volume = 1;
-  var v = getBestVoice(); if (v) u.voice = v;
-  var delay = slow ? 0 : 600;
+  var len = w.text.replace(/\s/g,"").length;
+  var delay = slow ? 400 : (len <= 3 ? 1000 : len <= 5 ? 800 : len <= 8 ? 600 : 400);
   setTimeout(function(){
-    // prime the synth with a silent utterance first time
+    // prime synth first to avoid clipping
     var primer = new SpeechSynthesisUtterance(" ");
-    primer.volume = 0;
-    window.speechSynthesis.speak(primer);
+    primer.volume = 0; primer.rate = 1;
     primer.onend = function(){
-      var u2 = new SpeechSynthesisUtterance(w.text);
-      u2.lang = "en-US"; u2.rate = slow ? 0.65 : 0.82; u2.pitch = 1.05; u2.volume = 1;
-      var v2 = getBestVoice(); if (v2) u2.voice = v2;
-      window.speechSynthesis.speak(u2);
+      var u = new SpeechSynthesisUtterance(w.text);
+      u.lang = "en-US";
+      u.rate = slow ? 0.6 : 0.78;
+      u.pitch = 1.05;
+      u.volume = 1;
+      var v = getBestVoice(); if (v) u.voice = v;
+      window.speechSynthesis.speak(u);
     };
+    window.speechSynthesis.speak(primer);
   }, delay);
 }
 
+// Screens
 function showScreen(id) {
-  var screens = document.querySelectorAll(".screen");
-  for (var i=0; i<screens.length; i++) screens[i].classList.remove("active");
+  var ss = document.querySelectorAll(".screen");
+  for (var i=0; i<ss.length; i++) ss[i].classList.remove("active");
   document.getElementById("screen-"+id).classList.add("active");
-  if (id === "levels") renderLevels();
-  if (id === "leaderboard") renderLeaderboard();
+  if (id==="levels") renderLevels();
+  if (id==="leaderboard") renderLeaderboard();
 }
 
 function setMode(m) {
   state.mode = m;
-  document.getElementById("btn-baby").className = "mode-btn" + (m==="baby"?" mode-active-baby":"");
-  document.getElementById("btn-explorer").className = "mode-btn" + (m==="explorer"?" mode-active-explorer":"");
+  document.getElementById("btn-baby").className = "mode-btn"+(m==="baby"?" mode-active-baby":"");
+  document.getElementById("btn-explorer").className = "mode-btn"+(m==="explorer"?" mode-active-explorer":"");
 }
 
 function goLevels() {
   var n = document.getElementById("name-input").value.trim();
   state.playerName = n || "Player";
-  saveStorage();
-  document.getElementById("hi-name").textContent = "Hi, " + state.playerName + "! 👋";
+  loadModeData(); // load progress for this player+mode
+  saveAll();
+  document.getElementById("hi-name").textContent = "Hi, "+state.playerName+"! 👋";
   showScreen("levels");
 }
 
-function lbBack() {
-  showScreen(state.playerName ? "levels" : "splash");
-}
+function lbBack() { showScreen(state.playerName?"levels":"splash"); }
 
-var ALL_TOPICS = [
-  "animals","colors","food","family","home","school","body","weather",
-  "clothes","transport","numbers","shapes","sports","toys","nature",
-  "emotions","jobs","places","music","science","space","ocean","farm","city","jungle"
-];
-
+// Levels
 var LEVEL_CONFIG = (function(){
-  var configs = [];
-  for (var i=0; i<50; i++) {
-    var lvl = i+1;
-    var isPhrase = lvl >= 30;
-    configs.push({ lvl:lvl, isPhrase:isPhrase });
-  }
-  return configs;
+  var c = [];
+  for (var i=0; i<50; i++) { var l=i+1; c.push({lvl:l, isPhrase:l>=30}); }
+  return c;
 })();
+
+var ALL_TOPICS = ["animals","colors","food","family","home","school","body","weather","clothes","transport","numbers","shapes","sports","toys","nature","emotions","jobs","places","music","science","space","ocean","farm","city","jungle"];
 
 function renderLevels() {
   var g = document.getElementById("level-grid");
   g.innerHTML = "";
   for (var i=0; i<50; i++) {
-    var l = i+1;
-    var unlocked = l <= state.unlockedUpTo;
-    var cfg = LEVEL_CONFIG[i];
+    var l=i+1, unlocked=l<=state.unlockedUpTo, cfg=LEVEL_CONFIG[i];
     var btn = document.createElement("button");
     if (unlocked) {
-      btn.className = "level-btn" + (cfg.isPhrase ? " phrase" : "");
-      btn.innerHTML = (cfg.isPhrase ? "<span style='font-size:11px;color:#aaa'>📝</span><br>" : "") + l;
+      btn.className = "level-btn"+(cfg.isPhrase?" phrase":"");
+      btn.innerHTML = (cfg.isPhrase?"<span style='font-size:11px;color:#aaa'>📝</span><br>":"")+l;
       (function(lv){ btn.onclick = function(){ startLevel(lv); }; })(l);
     } else {
       btn.className = "level-btn locked";
@@ -301,10 +301,9 @@ function renderLevels() {
   }
 }
 
+// Play
 function startLevel(lvl) {
-  state.level = lvl;
-  state.wordIdx = 0;
-  state.results = [];
+  state.level = lvl; state.wordIdx = 0; state.results = [];
   showScreen("play");
   document.getElementById("play-info").textContent = "Level "+lvl+" · Word 1/5";
   document.getElementById("loading-words").style.display = "block";
@@ -318,66 +317,51 @@ function startLevel(lvl) {
 function fetchWords(lvl) {
   var isPhrase = lvl >= 30;
   var isBaby = state.mode === "baby";
-
-  // Pick 1 random topic per fetch — guarantees variety across retries
   var topic = ALL_TOPICS[Math.floor(Math.random() * ALL_TOPICS.length)];
-
+  var seed = Math.random().toString(36).slice(2,10);
   var modeGuide, phoneticGuide;
 
   if (isBaby) {
-    modeGuide = "a 5-year-old Italian child, complete beginner. ONLY very short, high-frequency English words. Fun, concrete, visual topics.";
-    if (lvl<=5)  phoneticGuide = "CVC words only: cat, dog, red, big, cup. Maximum 3 letters. No difficult sounds.";
-    else if (lvl<=10) phoneticGuide = "1-2 syllable common words. Avoid 'th','w','r'. Example: ball, fish, bed, jump, cake.";
-    else if (lvl<=15) phoneticGuide = "1-2 syllables. Introduce 'w' sound (water, warm). Still avoid 'th'.";
-    else if (lvl<=20) phoneticGuide = "Introduce 'th' (this, that). Simple blends: bl, cl, fl. Words like: blue, cloud, three.";
-    else if (lvl<=25) phoneticGuide = "Common words with silent letters or tricky spelling: knife, know, walk, talk.";
-    else if (lvl<=29) phoneticGuide = "Mix all sounds. Short 2-word combos like 'big dog', 'red apple' are ok.";
-    else if (lvl<=35) phoneticGuide = "Simple 3-4 word phrases: 'I like cats', 'She is happy', 'I have a dog'.";
-    else if (lvl<=42) phoneticGuide = "4-5 word sentences, present tense: 'The cat is sleeping', 'I want some milk'.";
-    else              phoneticGuide = "5-6 word simple sentences: 'Can I have some water?', 'I go to school every day'.";
+    modeGuide = "a 5-year-old Italian child, complete beginner. ONLY very short, high-frequency English words.";
+    if (lvl<=5) phoneticGuide = "CVC words only: cat, dog, red, big, cup. Max 3 letters.";
+    else if (lvl<=10) phoneticGuide = "1-2 syllable words. Avoid th/w/r. Example: ball, fish, jump, cake.";
+    else if (lvl<=15) phoneticGuide = "1-2 syllables. Introduce w sound (water, warm).";
+    else if (lvl<=20) phoneticGuide = "Introduce th (this, that). Blends: bl, cl, fl.";
+    else if (lvl<=25) phoneticGuide = "Silent letters: knife, know, walk, talk.";
+    else if (lvl<=29) phoneticGuide = "Mix all sounds. Short combos like big dog, red apple.";
+    else if (lvl<=35) phoneticGuide = "Simple 3-4 word phrases: I like cats, She is happy.";
+    else if (lvl<=42) phoneticGuide = "4-5 word sentences: The cat is sleeping, I want some milk.";
+    else phoneticGuide = "5-6 word sentences: Can I have some water?";
   } else {
-    modeGuide = "a 10-year-old Italian child with basic English. Use progressively harder vocabulary and pronunciation. Challenge them.";
-    if (lvl<=5)  phoneticGuide = "2-syllable words with clear phonetics. Example: garden, window, monkey, purple, tiger.";
-    else if (lvl<=10) phoneticGuide = "Include 'th' (think, both) and 'w' (world, window). 2-3 syllables.";
-    else if (lvl<=15) phoneticGuide = "Words with 'r' (river, wrong), 'æ' (cat, black, had). 2-3 syllables.";
-    else if (lvl<=20) phoneticGuide = "Add 'ʃ' (shoe, wash), 'tʃ' (church, catch), 'dʒ' (judge, engine). 3 syllables.";
-    else if (lvl<=25) phoneticGuide = "Tricky: ough (through, though), silent letters, irregular stress. 3-4 syllables.";
-    else if (lvl<=29) phoneticGuide = "Clusters: str (street), spr (spring), complex vowels: beautiful, thoroughly. 4 syllables.";
-    else if (lvl<=35) phoneticGuide = "Short A2 phrases with tricky sounds: 'She brought three things', 'I usually walk there'.";
-    else if (lvl<=42) phoneticGuide = "Medium phrases with reductions: 'I want to go to the park', 'What are you doing?'";
-    else              phoneticGuide = "Longer A2 phrases with connected speech: 'What do you usually do on weekends?', 'I think it\\'s really interesting.'";
+    modeGuide = "a 10-year-old Italian child with basic English. Use harder vocabulary and pronunciation.";
+    if (lvl<=5) phoneticGuide = "2-syllable words: garden, window, monkey, purple, tiger.";
+    else if (lvl<=10) phoneticGuide = "Include th (think, both) and w (world). 2-3 syllables.";
+    else if (lvl<=15) phoneticGuide = "Words with r (river), ae (cat, black). 2-3 syllables.";
+    else if (lvl<=20) phoneticGuide = "sh (shoe), ch (church), j (judge). 3 syllables.";
+    else if (lvl<=25) phoneticGuide = "Tricky: ough, silent letters, irregular stress. 3-4 syllables.";
+    else if (lvl<=29) phoneticGuide = "Clusters: str, spr. Long vowels: beautiful, thoroughly.";
+    else if (lvl<=35) phoneticGuide = "Short A2 phrases: She brought three things, I usually walk there.";
+    else if (lvl<=42) phoneticGuide = "Medium phrases: I want to go to the park, What are you doing?";
+    else phoneticGuide = "Longer A2: What do you usually do on weekends?";
   }
 
-  var seed = Math.random().toString(36).slice(2,10);
-
-  var prompt = "You are generating English learning content. Generate exactly 5 unique English "
-    + (isPhrase ? "phrases" : "words") + " for " + modeGuide + "\n"
-    + "Level: " + lvl + " out of 50. Topic: " + topic + ".\n"
-    + "Pronunciation difficulty: " + phoneticGuide + "\n"
-    + "Rules:\n"
-    + "- All 5 must be DIFFERENT from each other\n"
-    + "- All 5 must fit the topic '" + topic + "'\n"
-    + "- Strictly follow the pronunciation difficulty for level " + lvl + "\n"
-    + "- " + (isBaby ? "Baby mode: SIMPLE, SHORT, FUN" : "Explorer mode: CHALLENGING, VARIED, EDUCATIONAL") + "\n"
-    + "- Seed for variety: " + seed + "\n"
-    + "Respond ONLY with a valid JSON array, no markdown, no extra text:\n"
-    + '[{"text":"...","emoji":"...","hint":"..."},...]\n'
-    + "hint = Italian translation, max 4 words.";
+  var prompt = "Generate exactly 5 unique English "+(isPhrase?"phrases":"words")+" for "+modeGuide+"\n"
+    +"Level: "+lvl+"/50. Topic: "+topic+".\nPronunciation: "+phoneticGuide+"\n"
+    +"Rules: all 5 different, fit topic, follow difficulty, seed: "+seed+"\n"
+    +"Respond ONLY with valid JSON array, no markdown:\n"
+    +'[{"text":"...","emoji":"...","hint":"..."},...]\n'
+    +"hint = Italian translation, max 4 words.";
 
   fetch(API_URL, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      model: CLAUDE_MODEL,
-      max_tokens: 1000,
-      messages: [{role:"user", content:prompt}]
-    })
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({model:CLAUDE_MODEL, max_tokens:1000, messages:[{role:"user",content:prompt}]})
   })
   .then(function(res){ return res.json(); })
   .then(function(data){
     var txt = "";
     for (var i=0; i<data.content.length; i++) {
-      if (data.content[i].type==="text") { txt = data.content[i].text; break; }
+      if (data.content[i].type==="text"){ txt=data.content[i].text; break; }
     }
     txt = txt.replace(/```json/g,"").replace(/```/g,"").trim();
     state.words = JSON.parse(txt).slice(0,5);
@@ -387,7 +371,7 @@ function fetchWords(lvl) {
   .catch(function(err){
     document.getElementById("loading-words").innerHTML =
       '<div style="color:#A32D2D;font-size:13px;padding:12px;background:#FCEBEB;border-radius:12px;max-width:400px;word-break:break-all">'
-      + '<strong>API Error:</strong><br>' + (err ? err.toString() : "unknown") + '</div>';
+      +'<strong>API Error:</strong><br>'+(err?err.toString():"unknown")+'</div>';
   });
 }
 
@@ -397,10 +381,10 @@ function renderWord() {
   document.getElementById("word-card").style.display = "block";
   document.getElementById("word-emoji").textContent = w.emoji;
   document.getElementById("word-text").textContent = w.text;
-  document.getElementById("word-text").style.fontSize = w.text.length > 15 ? "22px" : "36px";
+  document.getElementById("word-text").style.fontSize = w.text.length>15?"22px":"36px";
   document.getElementById("word-hint").textContent = w.hint;
   document.getElementById("play-info").textContent = "Level "+state.level+" · Word "+(state.wordIdx+1)+"/5";
-  document.getElementById("btn-next-word").textContent = (state.wordIdx+1 >= 5) ? "Finish ✅" : "Next →";
+  document.getElementById("btn-next-word").textContent = (state.wordIdx+1>=5)?"Finish ✅":"Next →";
   setRecState("idle");
   updateProgress();
 }
@@ -412,7 +396,7 @@ function updateProgress() {
   for (var i=0; i<5; i++) {
     var s = document.createElement("span");
     s.style.fontSize = "14px";
-    s.textContent = i < state.results.length ? (state.results[i]>=4?"✅":"❌") : "⬜";
+    s.textContent = i<state.results.length?(state.results[i]>=4?"✅":"❌"):"⬜";
     r.appendChild(s);
   }
 }
@@ -421,7 +405,7 @@ function setRecState(s) {
   var ids = ["idle","recording","loading","done"];
   for (var i=0; i<ids.length; i++) {
     var el = document.getElementById("rec-"+ids[i]);
-    if (el) el.style.display = (ids[i]===s) ? "block" : "none";
+    if (el) el.style.display = (ids[i]===s)?"block":"none";
   }
 }
 
@@ -432,7 +416,6 @@ function startRecord() {
     document.getElementById("word-card").style.display = "none";
     return;
   }
-  // Chrome manages mic permission internally via SpeechRecognition — no getUserMedia needed
   doRecord();
 }
 
@@ -443,16 +426,36 @@ function doRecord() {
     document.getElementById("word-card").style.display = "none";
     return;
   }
+
+  // 3-second countdown before mic activates
+  setRecState("recording");
+  var countdown = 3;
+  var box = document.getElementById("rec-recording");
+  box.textContent = "🎤 Get ready... " + countdown;
+
+  var timer = setInterval(function(){
+    countdown--;
+    if (countdown > 0) {
+      box.textContent = "🎤 Get ready... " + countdown;
+    } else {
+      clearInterval(timer);
+      box.textContent = "🔴 Speak now!";
+      startListening();
+    }
+  }, 1000);
+}
+
+function startListening() {
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   var rec = new SR();
   rec.lang = "en-US"; rec.interimResults = false; rec.maxAlternatives = 5; rec.continuous = false;
-  setRecState("recording");
   var finished = false;
 
   function finish(alts) {
     if (finished) return;
     finished = true;
     clearTimeout(safetyTimer);
-    if (!alts || alts.length === 0) {
+    if (!alts || alts.length===0) {
       state.results.push(1);
       updateProgress();
       document.getElementById("stars-row").innerHTML = starsHTML(1);
@@ -472,25 +475,16 @@ function doRecord() {
     for (var i=0; i<e.results[0].length; i++) alts.push(e.results[0][i].transcript.trim());
     finish(alts);
   };
-
   rec.onerror = function(e) {
-    if (e.error === "not-allowed") {
-      micStream = null;
+    if (e.error==="not-allowed") {
       document.getElementById("mic-denied").style.display = "block";
       document.getElementById("word-card").style.display = "none";
-      finished = true;
-      clearTimeout(safetyTimer);
-    } else {
-      finish([]);
-    }
+      finished = true; clearTimeout(safetyTimer);
+    } else { finish([]); }
   };
-
   rec.onend = function() { finish([]); };
-
   try { rec.start(); } catch(e) { finish([]); return; }
-
-  // Safety timeout: if nothing happens in 8s, force finish
-  var safetyTimer = setTimeout(function(){ try{ rec.stop(); }catch(e){} finish([]); }, 8000);
+  var safetyTimer = setTimeout(function(){ try{rec.stop();}catch(e){} finish([]); }, 9000);
 }
 
 function retryMic() {
@@ -505,57 +499,50 @@ function starsHTML(n) {
 }
 
 function analyse(alts, target) {
-  var age = state.mode === "baby" ? "5" : "10";
+  var age = state.mode==="baby"?"5":"10";
   var prompt = 'You are a friendly English pronunciation coach for a '+age+' year old Italian child.\n'
-    + 'Target: "'+target+'"\n'
-    + 'Speech engine alternatives: '+JSON.stringify(alts)+'\n'
-    + 'Be STRICT: only award 4-5 stars for genuinely accurate pronunciation from a native-English perspective. '
-    + 'An Italian accent or mispronounced phonemes must reduce the score. '
-    + 'Stars: 1=incomprehensible, 2=very wrong, 3=understandable but clearly incorrect, 4=good with minor accent, 5=near-native.\n'
-    + 'Respond ONLY with JSON (no markdown):\n'
-    + '{"stars":N,"feedback":"<max 18 words, child-friendly>","tip":"<one short tip if stars<4, else empty>"}';
+    +'Target: "'+target+'"\nSpeech engine alternatives: '+JSON.stringify(alts)+'\n'
+    +'Be STRICT: only 4-5 stars for genuinely accurate pronunciation. Italian accent or mispronounced phonemes must reduce score.\n'
+    +'Stars: 1=incomprehensible, 2=very wrong, 3=understandable but incorrect, 4=good with minor accent, 5=near-native.\n'
+    +'Respond ONLY with JSON (no markdown):\n'
+    +'{"stars":N,"feedback":"<max 18 words, child-friendly>","tip":"<one short tip if stars<4, else empty>"}';
 
   fetch(API_URL, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({model:CLAUDE_MODEL, max_tokens:1000, messages:[{role:"user",content:prompt}]})
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({model:CLAUDE_MODEL, max_tokens:1000, messages:[{role:"user",content:prompt}]})
   })
   .then(function(res){ return res.json(); })
   .then(function(data){
     var txt = "";
     for (var i=0; i<data.content.length; i++) {
-      if (data.content[i].type==="text") { txt = data.content[i].text; break; }
+      if (data.content[i].type==="text"){ txt=data.content[i].text; break; }
     }
     txt = txt.replace(/```json/g,"").replace(/```/g,"").trim();
     var p = JSON.parse(txt);
-    var s = Math.max(1, Math.min(5, p.stars||1));
-    var msg = (p.feedback||"Good try!") + (p.tip ? " 💡 "+p.tip : "");
-    showFeedback(s, msg);
+    var s = Math.max(1,Math.min(5,p.stars||1));
+    showFeedback(s,(p.feedback||"Good try!")+(p.tip?" 💡 "+p.tip:""));
   })
   .catch(function(){
-    var said = alts[0].toLowerCase();
-    var tgt = target.toLowerCase();
-    var match = said.indexOf(tgt)>-1 || tgt.indexOf(said)>-1;
-    showFeedback(match?4:2, match?"Great pronunciation! 🌟":"Almost! Try saying \""+target+"\" again.");
+    var said=alts[0].toLowerCase(), tgt=target.toLowerCase();
+    var match=said.indexOf(tgt)>-1||tgt.indexOf(said)>-1;
+    showFeedback(match?4:2,match?"Great pronunciation! 🌟":"Almost! Try saying \""+target+"\" again.");
   });
 }
 
-function showFeedback(s, msg) {
+function showFeedback(s,msg) {
   state.results.push(s);
   updateProgress();
   document.getElementById("stars-row").innerHTML = starsHTML(s);
   var fb = document.getElementById("feedback-box");
   fb.textContent = msg;
-  fb.className = "feedback-box " + (s>=4?"feedback-good":s>=2?"feedback-mid":"feedback-bad");
-  document.getElementById("btn-next-word").textContent = (state.wordIdx+1>=5) ? "Finish ✅" : "Next →";
+  fb.className = "feedback-box "+(s>=4?"feedback-good":s>=2?"feedback-mid":"feedback-bad");
+  document.getElementById("btn-next-word").textContent = (state.wordIdx+1>=5)?"Finish ✅":"Next →";
   setRecState("done");
 }
 
 function retryWord() {
-  // Remove the result for the current word index if it exists
-  if (state.results.length > state.wordIdx) {
-    state.results.splice(state.wordIdx, 1);
-  }
+  if (state.results.length>state.wordIdx) state.results.splice(state.wordIdx,1);
   document.getElementById("transcript-box").textContent = "";
   document.getElementById("stars-row").innerHTML = "";
   document.getElementById("feedback-box").textContent = "";
@@ -564,101 +551,91 @@ function retryWord() {
 }
 
 function nextWord() {
-  if (state.wordIdx+1 >= 5) { showResult(); return; }
+  if (state.wordIdx+1>=5){ showResult(); return; }
   state.wordIdx++;
   renderWord();
 }
 
 function showResult() {
-  var good = 0;
-  for (var i=0; i<state.results.length; i++) if (state.results[i]>=4) good++;
-  var passed = good >= 4;
-  var total = 0;
-  for (var i=0; i<state.results.length; i++) total += state.results[i];
-
-  if (passed && state.level >= state.unlockedUpTo) {
+  var good=0, total=0;
+  for (var i=0; i<state.results.length; i++) {
+    if (state.results[i]>=4) good++;
+    total += state.results[i];
+  }
+  var passed = good>=4;
+  if (passed && state.level>=state.unlockedUpTo) {
     state.unlockedUpTo = Math.min(50, state.level+1);
   }
   if (passed) {
-    state.leaderboard.push({name:state.playerName, level:state.level, score:total, date:new Date().toLocaleDateString("it-IT")});
-    state.leaderboard.sort(function(a,b){ return b.level-a.level || b.score-a.score; });
-    if (state.leaderboard.length > 20) state.leaderboard = state.leaderboard.slice(0,20);
+    state.leaderboard.push({name:state.playerName,mode:state.mode,level:state.level,score:total,date:new Date().toLocaleDateString("it-IT")});
+    state.leaderboard.sort(function(a,b){ return b.level-a.level||b.score-a.score; });
+    if (state.leaderboard.length>20) state.leaderboard=state.leaderboard.slice(0,20);
   }
-  saveStorage();
-
-  document.getElementById("result-emoji").textContent = passed ? "🏆" : "💪";
-  document.getElementById("result-title").textContent = passed ? "Level Passed!" : "Keep Trying!";
-  document.getElementById("result-sub").textContent = passed ? "Level "+(state.level+1)+" is now unlocked! 🔓" : "You need 4/5 words. You got "+good+"/5.";
-
+  saveAll();
+  document.getElementById("result-emoji").textContent = passed?"🏆":"💪";
+  document.getElementById("result-title").textContent = passed?"Level Passed!":"Keep Trying!";
+  document.getElementById("result-sub").textContent = passed?"Level "+(state.level+1)+" is now unlocked! 🔓":"You need 4/5 words. You got "+good+"/5.";
   var sc = document.getElementById("result-score");
   sc.textContent = good+"/5 correct · Score: "+total+"/25";
-  sc.style.background = passed ? "#EAF3DE" : "#FAECE7";
-  sc.style.color = passed ? "#3B6D11" : "#993C1D";
-
+  sc.style.background = passed?"#EAF3DE":"#FAECE7";
+  sc.style.color = passed?"#3B6D11":"#993C1D";
   var dots = document.getElementById("result-dots");
   dots.innerHTML = "";
   for (var i=0; i<state.results.length; i++) {
-    var d = document.createElement("div");
-    d.style.textAlign = "center";
-    d.innerHTML = (state.results[i]>=4?"✅":"❌")+"<div style='font-size:11px;color:#aaa'>"+state.results[i]+"⭐</div>";
+    var d=document.createElement("div"); d.style.textAlign="center";
+    d.innerHTML=(state.results[i]>=4?"✅":"❌")+"<div style='font-size:11px;color:#aaa'>"+state.results[i]+"⭐</div>";
     dots.appendChild(d);
   }
-
   var nb = document.getElementById("btn-next-level");
-  if (passed && state.level < 50) {
-    nb.style.display = "block";
-    nb.textContent = "Next Level "+(state.level+1)+" →";
-  } else {
-    nb.style.display = "none";
-  }
-
+  if (passed&&state.level<50){ nb.style.display="block"; nb.textContent="Next Level "+(state.level+1)+" →"; }
+  else nb.style.display="none";
   showScreen("result");
 }
 
-function nextLevel() { startLevel(state.level+1); }
-function retryLevel() { startLevel(state.level); }
+function nextLevel(){ startLevel(state.level+1); }
+function retryLevel(){ startLevel(state.level); }
 
 function renderLeaderboard() {
   var list = document.getElementById("lb-list");
   if (!state.leaderboard.length) {
-    list.innerHTML = '<div style="text-align:center;color:#aaa;margin-top:60px;font-size:18px">No scores yet!<br>Complete a level to appear here 🌟</div>';
+    list.innerHTML='<div style="text-align:center;color:#aaa;margin-top:60px;font-size:18px">No scores yet!<br>Complete a level to appear here 🌟</div>';
     return;
   }
-  var medals = ["🥇","🥈","🥉"];
-  var html = "";
+  var medals=["🥇","🥈","🥉"], html="";
   for (var i=0; i<state.leaderboard.length; i++) {
-    var e = state.leaderboard[i];
-    var medal = medals[i] || (i+1)+"."
-    html += '<div class="lb-entry">'
-      + '<div style="font-size:22px;min-width:32px;text-align:center">'+medal+'</div>'
-      + '<div style="flex:1"><div style="font-weight:700;color:#534AB7;font-size:16px">'+e.name+'</div>'
-      + '<div style="font-size:12px;color:#aaa">'+e.date+'</div></div>'
-      + '<div style="text-align:right"><div style="font-weight:800;color:#534AB7;font-size:18px">Lv '+e.level+'</div>'
-      + '<div style="font-size:12px;color:#888">Score: '+e.score+'</div></div></div>';
+    var e=state.leaderboard[i];
+    html+='<div class="lb-entry">'
+      +'<div style="font-size:22px;min-width:32px;text-align:center">'+(medals[i]||(i+1)+".")+'</div>'
+      +'<div style="flex:1"><div style="font-weight:700;color:#534AB7;font-size:16px">'+e.name+'</div>'
+      +'<div style="font-size:12px;color:#aaa">'+(e.mode||"")+" · "+e.date+'</div></div>'
+      +'<div style="text-align:right"><div style="font-weight:800;color:#534AB7;font-size:18px">Lv '+e.level+'</div>'
+      +'<div style="font-size:12px;color:#888">Score: '+e.score+'</div></div></div>';
   }
   list.innerHTML = html;
 }
 
 function togglePin() {
-  var p = document.getElementById("pin-panel");
-  p.style.display = p.style.display==="none" ? "block" : "none";
-  document.getElementById("pin-error").style.display = "none";
+  var p=document.getElementById("pin-panel");
+  p.style.display=p.style.display==="none"?"block":"none";
+  document.getElementById("pin-error").style.display="none";
 }
 
 function doReset() {
-  if (document.getElementById("pin-input").value === SUPERUSER_PIN) {
-    state.leaderboard = [];
-    state.unlockedUpTo = 1;
-    saveStorage();
-    document.getElementById("pin-error").style.display = "none";
-    togglePin();
-    renderLeaderboard();
-  } else {
-    document.getElementById("pin-error").style.display = "block";
-  }
+  if (document.getElementById("pin-input").value===SUPERUSER_PIN) {
+    // Remove all ef_ keys
+    var toRemove=[];
+    for (var i=0; i<localStorage.length; i++) {
+      var k=localStorage.key(i);
+      if (k&&k.indexOf("ef_")===0) toRemove.push(k);
+    }
+    toRemove.forEach(function(k){ localStorage.removeItem(k); });
+    state.leaderboard=[]; state.unlockedUpTo=1;
+    document.getElementById("pin-error").style.display="none";
+    togglePin(); renderLeaderboard();
+  } else { document.getElementById("pin-error").style.display="block"; }
 }
 
-loadStorage(); // only loads player name on startup
+loadPlayerName();
 </script>
 </body>
 </html>
