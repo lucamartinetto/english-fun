@@ -43,6 +43,7 @@ input{font-family:inherit;}
 .mode-btn{flex:1;padding:14px 0;border-radius:16px;border:2px solid #ddd;background:white;font-weight:700;font-size:14px;color:#888;}
 .mode-active-baby{border-color:#534AB7 !important;background:#EEEDFE !important;color:#534AB7 !important;}
 .mode-active-explorer{border-color:#185FA5 !important;background:#E6F1FB !important;color:#185FA5 !important;}
+.mode-active-advanced{border-color:#0F6E56 !important;background:#E1F5EE !important;color:#0F6E56 !important;}
 input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14px;border-radius:12px;border:2px solid #CECBF6;margin-top:8px;margin-bottom:16px;outline:none;}
 .result-card{background:white;border-radius:28px;padding:32px 24px;width:100%;max-width:400px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.09);}
 </style>
@@ -61,8 +62,9 @@ input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14p
     <input type="text" id="name-input" placeholder="Enter your name..." maxlength="20"/>
     <label style="font-size:14px;color:#555;font-weight:600">Choose your mode:</label>
     <div style="display:flex;gap:12px;margin:10px 0 20px">
-      <button class="mode-btn mode-active-baby" id="btn-baby" onclick="setMode('baby')">🐣 Baby<br><small>age 5</small></button>
-      <button class="mode-btn" id="btn-explorer" onclick="setMode('explorer')">🚀 Explorer<br><small>age 10</small></button>
+      <button class="mode-btn mode-active-baby" id="btn-baby" onclick="setMode('baby')">🐣 Junior</button>
+      <button class="mode-btn" id="btn-explorer" onclick="setMode('explorer')">🚀 Explorer</button>
+      <button class="mode-btn" id="btn-advanced" onclick="setMode('advanced')">🎓 Advanced</button>
     </div>
     <button class="btn-primary" onclick="goLevels()">Let's Go! 🚀</button>
     <div style="text-align:center;margin-top:8px">
@@ -81,7 +83,7 @@ input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14p
   <h2 style="text-align:center;color:#534AB7;margin-bottom:6px">Choose a Level</h2>
   <p style="text-align:center;font-size:13px;color:#aaa;margin-bottom:20px">Complete a level to unlock the next one</p>
   <div class="level-grid" id="level-grid"></div>
-  <p style="text-align:center;margin-top:16px;font-size:13px;color:#888">🔤 Words (lv 1-29) · 📝 Phrases (lv 30-50)</p>
+  <p style="text-align:center;margin-top:16px;font-size:13px;color:#888" id="level-hint"></p>
 </div>
 
 <!-- PLAY -->
@@ -278,6 +280,7 @@ function setMode(m) {
   state.mode = m;
   document.getElementById("btn-baby").className     = "mode-btn" + (m === "baby"     ? " mode-active-baby"     : "");
   document.getElementById("btn-explorer").className = "mode-btn" + (m === "explorer" ? " mode-active-explorer" : "");
+  document.getElementById("btn-advanced").className = "mode-btn" + (m === "advanced" ? " mode-active-advanced" : "");
 }
 
 function goLevels() {
@@ -286,6 +289,9 @@ function goLevels() {
   loadModeData();
   saveAll();
   document.getElementById("hi-name").textContent = "Hi, " + state.playerName + "! 👋";
+  var hint = document.getElementById("level-hint");
+  if (state.mode === "advanced") hint.textContent = "🎓 B1 English · 30 levels";
+  else hint.textContent = "🔤 Words (lv 1-29) · 📝 Phrases (lv 30-50)";
   showScreen("levels");
 }
 
@@ -297,13 +303,18 @@ var ALL_TOPICS = ["animals","colors","food","family","home","school","body","wea
   "emotions","jobs","places","music","science","space","ocean","farm","city","jungle"];
 
 function renderLevels() {
+  var isAdv  = state.mode === "advanced";
+  var maxLvl = isAdv ? 30 : 50;
+  var accent = isAdv ? "#0F6E56" : "#534AB7";
   var g = document.getElementById("level-grid");
   g.innerHTML = "";
-  for (var i = 0; i < 50; i++) {
+  for (var i = 0; i < maxLvl; i++) {
     var l = i + 1;
     var unlocked = l <= state.unlockedUpTo;
-    var isPhrase = l >= 30;
+    var isPhrase = !isAdv && l >= 30;
     var btn = document.createElement("button");
+    btn.style.borderColor = unlocked ? accent : "#ddd";
+    btn.style.color       = unlocked ? accent : "#aaa";
     if (unlocked) {
       btn.className = "level-btn" + (isPhrase ? " phrase" : "");
       btn.innerHTML = (isPhrase ? "<span style='font-size:13px;color:#888'>📝</span><br>" : "") + l;
@@ -439,8 +450,12 @@ function startRecord() {
 
   // Avvia il riconoscimento subito, poi mostra countdown visivo
   var rec      = new SR();
-  rec.lang     = "en-US"; rec.interimResults = false; rec.maxAlternatives = 5; rec.continuous = false;
-  var finished = false;
+  rec.lang     = "en-US";
+  rec.interimResults   = false;
+  rec.maxAlternatives  = 5;
+  rec.continuous       = false;
+  var finished   = false;
+  var gotResult  = false;   // true solo se onresult ha sparato
   var safetyTimer;
 
   function finish(alts) {
@@ -448,13 +463,13 @@ function startRecord() {
     finished = true;
     clearTimeout(safetyTimer);
     if (!alts || alts.length === 0) {
-      state.results.push(1);
-      updateProgress();
-      document.getElementById("stars-row").innerHTML      = starsHTML(1);
-      document.getElementById("feedback-box").textContent = "Couldn't hear you. Try again! 🎤";
-      document.getElementById("feedback-box").className   = "feedback-box feedback-bad";
-      document.getElementById("transcript-box").textContent = "";
-      setRecState("done");
+      // Nessun risultato — mostra messaggio e lascia riprovare senza penalità
+      setRecState("idle");
+      var box = document.getElementById("rec-recording");
+      box.textContent = "🎤 Get ready... 2";
+      // Piccolo feedback visivo non penalizzante
+      document.getElementById("word-card").style.border = "2px solid #F5C4B3";
+      setTimeout(function(){ document.getElementById("word-card").style.border = "none"; }, 800);
       return;
     }
     document.getElementById("transcript-box").textContent = 'You said: "' + alts[0] + '"';
@@ -463,25 +478,66 @@ function startRecord() {
   }
 
   rec.onresult = function(e) {
+    gotResult = true;
     var alts = [];
     for (var i = 0; i < e.results[0].length; i++) alts.push(e.results[0][i].transcript.trim());
     finish(alts);
   };
+
   rec.onerror = function(e) {
     if (e.error === "not-allowed") {
       document.getElementById("mic-denied").style.display = "block";
       document.getElementById("word-card").style.display  = "none";
       finished = true; clearTimeout(safetyTimer);
-    } else { finish([]); }
+    } else if (e.error === "no-speech") {
+      // no-speech è normale — non penalizzare, torna a idle
+      finish([]);
+    } else {
+      finish([]);
+    }
   };
-  rec.onend = function() { finish([]); };
+
+  // onend: scatta sempre alla fine del riconoscimento.
+  // Se NON abbiamo ancora un risultato, riavvia automaticamente
+  // invece di penalizzare (su mobile onend arriva spesso prima di onresult)
+  rec.onend = function() {
+    if (!gotResult && !finished) {
+      // Riavvio silenzioso — l'utente non se ne accorge
+      finished = true;
+      clearTimeout(safetyTimer);
+      try {
+        var rec2 = new SR();
+        rec2.lang = "en-US"; rec2.interimResults = false; rec2.maxAlternatives = 5; rec2.continuous = false;
+        var f2 = false;
+        rec2.onresult = function(e2) {
+          f2 = true;
+          var alts2 = [];
+          for (var i = 0; i < e2.results[0].length; i++) alts2.push(e2.results[0][i].transcript.trim());
+          if (alts2.length) {
+            document.getElementById("transcript-box").textContent = 'You said: "' + alts2[0] + '"';
+            setRecState("loading");
+            analyse(alts2, state.words[state.wordIdx].text);
+          } else { setRecState("idle"); }
+        };
+        rec2.onerror = function() { if (!f2) setRecState("idle"); };
+        rec2.onend   = function() { if (!f2) setRecState("idle"); };
+        rec2.start();
+        // Safety per il secondo tentativo
+        setTimeout(function(){ try{ rec2.stop(); }catch(e){} }, 8000);
+      } catch(e) { setRecState("idle"); }
+    }
+  };
 
   try { rec.start(); } catch(e) { finish([]); return; }
-  safetyTimer = setTimeout(function() { try { rec.stop(); } catch(e) {} finish([]); }, 9000);
+  // Safety timer più lungo per mobile/tablet lenti
+  safetyTimer = setTimeout(function() {
+    try { rec.stop(); } catch(e) {}
+    finish([]);
+  }, 12000);
 
   // Countdown visivo (il mic è già attivo)
   setRecState("recording");
-  var box      = document.getElementById("rec-recording");
+  var box       = document.getElementById("rec-recording");
   var countdown = 2;
   box.textContent = "🎤 Get ready... " + countdown;
   var timer = setInterval(function() {
