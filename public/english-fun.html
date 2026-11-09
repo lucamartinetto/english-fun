@@ -1,745 +1,822 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>English Fun!</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#534AB7">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;background:linear-gradient(135deg,#EEEDFE,#E1F5EE);}
-button{cursor:pointer;font-family:inherit;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  background:linear-gradient(160deg,#EEEDFE 0%,#E1F5EE 100%);
+  color:#333;overflow-x:hidden;
+}
+button{cursor:pointer;font-family:inherit;border:none;background:none;}
 input{font-family:inherit;}
-.screen{display:none;min-height:100vh;padding:20px;flex-direction:column;}
+
+/* screens */
+.screen{display:none;min-height:100vh;flex-direction:column;padding:16px;}
 .screen.active{display:flex;}
-#screen-splash{align-items:center;justify-content:center;}
-#screen-result{align-items:center;justify-content:center;}
-.card{background:white;border-radius:24px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 4px 24px rgba(0,0,0,0.09);}
-.btn-primary{width:100%;padding:16px 0;background:#534AB7;color:white;border:none;border-radius:16px;font-size:18px;font-weight:800;margin-bottom:8px;}
-.level-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;max-width:480px;margin:0 auto;}
-.level-btn{aspect-ratio:1;border-radius:18px;border:2px solid #534AB7;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#534AB7;min-height:72px;}
-.level-btn.phrase{background:#EEEDFE;}
-.level-btn.locked{border-color:#ddd;opacity:0.45;cursor:not-allowed;background:#f5f5f5;color:#aaa;}
-.word-card{background:white;border-radius:28px;padding:28px 22px;width:100%;max-width:480px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.09);}
-.btn-listen{background:#9FE1CB;color:#085041;border:none;border-radius:20px;padding:10px 20px;font-size:15px;font-weight:700;}
-.btn-speak{background:#534AB7;color:white;border:none;border-radius:20px;padding:15px 0;font-size:18px;font-weight:800;width:100%;}
-.btn-next{background:#534AB7;color:white;border:none;border-radius:12px;padding:9px 18px;font-size:13px;font-weight:700;}
-.btn-retry-word{background:#EEEDFE;color:#534AB7;border:none;border-radius:12px;padding:9px 16px;font-size:13px;font-weight:600;}
-.btn-hear{background:#E6F1FB;color:#042C53;border:none;border-radius:12px;padding:9px 16px;font-size:13px;font-weight:600;}
-.recording-box{background:#FCEBEB;border-radius:16px;padding:16px;color:#A32D2D;font-weight:700;font-size:16px;text-align:center;}
-.loading-box{color:#534AB7;font-weight:600;padding:16px;text-align:center;}
-.feedback-good{background:#EAF3DE;color:#3B6D11;}
-.feedback-mid{background:#FAEEDA;color:#633806;}
-.feedback-bad{background:#FCEBEB;color:#A32D2D;}
-.feedback-box{padding:12px 16px;border-radius:14px;font-size:14px;font-weight:600;line-height:1.5;margin-top:10px;}
-.progress-bar{width:100%;height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden;margin-bottom:8px;}
-.progress-fill{height:100%;background:linear-gradient(90deg,#7F77DD,#9FE1CB);border-radius:4px;transition:width 0.4s;}
-.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.top-btn{background:none;border:none;font-size:20px;cursor:pointer;}
-.lb-entry{background:white;border-radius:16px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;box-shadow:0 2px 10px rgba(0,0,0,0.06);}
-.mode-btn{flex:1;padding:14px 0;border-radius:16px;border:2px solid #ddd;background:white;font-weight:700;font-size:14px;color:#888;}
-.mode-active-baby{border-color:#534AB7 !important;background:#EEEDFE !important;color:#534AB7 !important;}
-.mode-active-explorer{border-color:#185FA5 !important;background:#E6F1FB !important;color:#185FA5 !important;}
-.mode-active-advanced{border-color:#0F6E56 !important;background:#E1F5EE !important;color:#0F6E56 !important;}
-input[type=text],input[type=password]{width:100%;font-size:18px;padding:10px 14px;border-radius:12px;border:2px solid #CECBF6;margin-top:8px;margin-bottom:16px;outline:none;}
-.result-card{background:white;border-radius:28px;padding:32px 24px;width:100%;max-width:400px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.09);}
+.center{align-items:center;justify-content:center;}
+.wrap{width:100%;max-width:640px;margin:0 auto;}
+
+/* top bar */
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+.topbar .pill{display:flex;align-items:center;gap:6px;background:#fff;border-radius:999px;padding:7px 14px;font-weight:800;font-size:15px;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.iconbtn{font-size:22px;background:#fff;border-radius:14px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+
+/* titles */
+.logo{font-size:64px;line-height:1;}
+h1.title{font-size:40px;font-weight:900;color:#534AB7;margin:6px 0 2px;letter-spacing:-.5px;}
+.subtitle{color:#8a8a9a;font-size:16px;margin-bottom:26px;}
+
+/* generic big button */
+.big{display:block;width:100%;padding:18px 0;border-radius:20px;font-size:20px;font-weight:900;color:#fff;background:#534AB7;box-shadow:0 6px 0 rgba(0,0,0,.12);transition:transform .08s,box-shadow .08s;}
+.big:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.12);}
+
+/* player roster */
+.roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:14px;}
+.pcard{background:#fff;border-radius:22px;padding:18px 10px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.07);border:3px solid transparent;transition:transform .1s;}
+.pcard:active{transform:scale(.96);}
+.pcard .av{font-size:52px;line-height:1;}
+.pcard .pn{font-weight:800;margin-top:8px;font-size:17px;color:#444;word-break:break-word;}
+.pcard.add{border:3px dashed #B9B4EC;background:#F6F5FF;color:#8A82D8;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:120px;font-weight:800;}
+.pcard.add .av{font-size:40px;}
+
+/* mode cards */
+.modecard{display:flex;align-items:center;gap:16px;background:#fff;border-radius:22px;padding:18px;box-shadow:0 4px 16px rgba(0,0,0,.07);margin-bottom:14px;border-left:8px solid #ccc;transition:transform .1s;}
+.modecard:active{transform:scale(.98);}
+.modecard .mi{font-size:46px;line-height:1;}
+.modecard .mt{font-weight:900;font-size:22px;}
+.modecard .md{color:#8a8a9a;font-size:14px;margin-top:2px;}
+
+/* levels */
+.lv-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+@media(min-width:560px){.lv-grid{grid-template-columns:repeat(6,1fr);}}
+.lv{aspect-ratio:1;border-radius:18px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:24px;font-weight:900;box-shadow:0 3px 10px rgba(0,0,0,.07);transition:transform .1s;}
+.lv:active{transform:scale(.93);}
+.lv.locked{background:#ececf3;color:#b7b7c6;box-shadow:none;}
+.lv .tag{font-size:12px;opacity:.6;font-weight:700;}
+.lv .done{position:absolute;}
+
+/* play area */
+.playarea{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.card{background:#fff;border-radius:28px;padding:26px 22px;width:100%;max-width:480px;box-shadow:0 8px 28px rgba(0,0,0,.1);text-align:center;}
+.wordmoji{font-size:110px;line-height:1.05;}
+.wordtext{font-size:40px;font-weight:900;margin-top:4px;}
+.wordhint{font-size:15px;color:#aaa;font-style:italic;margin-top:4px;}
+
+/* choice (junior) */
+.choices{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;width:100%;max-width:480px;}
+.choice{background:#fff;border-radius:24px;padding:10px 0;font-size:68px;line-height:1.1;box-shadow:0 5px 16px rgba(0,0,0,.08);transition:transform .1s;}
+.choice:active{transform:scale(.94);}
+.choice.wrong{animation:shake .4s;}
+.choice.right{background:#E6F7E0;box-shadow:0 0 0 4px #8BD36B;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+
+/* action buttons */
+.row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.btn{border-radius:18px;padding:14px 22px;font-size:17px;font-weight:800;box-shadow:0 4px 0 rgba(0,0,0,.1);transition:transform .08s,box-shadow .08s;}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.1);}
+.btn.listen{background:#9FE1CB;color:#0a5c47;}
+.btn.mic{background:#F4C0D1;color:#7a1f3a;}
+.btn.next{background:#534AB7;color:#fff;}
+.btn.ghost{background:#EEEDFE;color:#534AB7;box-shadow:0 4px 0 #cfc9f2;}
+.btn.big-mic{width:100%;max-width:480px;padding:18px 0;font-size:20px;}
+
+.reczone{width:100%;max-width:480px;background:#FCEBEB;border-radius:20px;padding:16px;text-align:center;font-weight:800;color:#A32D2D;font-size:18px;}
+.loadzone{color:#534AB7;font-weight:800;padding:14px;}
+.stars{font-size:30px;letter-spacing:3px;}
+.feedback{margin-top:8px;border-radius:16px;padding:12px 16px;font-weight:700;font-size:15px;}
+.fb-good{background:#EAF3DE;color:#3B6D11;}
+.fb-ok{background:#FAEEDA;color:#7a5209;}
+.fb-soft{background:#EEF2FB;color:#3a5a8a;}
+
+/* progress dots */
+.dots{display:flex;gap:7px;justify-content:center;margin-bottom:6px;}
+.dot{width:12px;height:12px;border-radius:50%;background:#dcdce6;}
+.dot.ok{background:#8BD36B;}
+.dot.cur{background:#534AB7;transform:scale(1.25);}
+
+/* result */
+.resultbig{font-size:84px;}
+.coinline{display:inline-flex;align-items:center;gap:8px;background:#FFF4D6;color:#A6760A;font-weight:900;font-size:22px;padding:10px 20px;border-radius:999px;margin:10px 0;}
+
+/* collection */
+.sticker-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+@media(min-width:520px){.sticker-grid{grid-template-columns:repeat(5,1fr);}}
+.st{aspect-ratio:1;border-radius:20px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:40px;box-shadow:0 3px 10px rgba(0,0,0,.07);}
+.st.locked{background:#ececf3;color:#c3c3d0;font-size:28px;}
+
+/* leaderboard */
+.lbrow{display:flex;align-items:center;gap:14px;background:#fff;border-radius:18px;padding:14px 16px;margin-bottom:10px;box-shadow:0 3px 10px rgba(0,0,0,.06);}
+.lbrow .rank{font-size:24px;min-width:34px;text-align:center;}
+.lbrow .lav{font-size:34px;}
+.lbrow .lname{font-weight:900;font-size:17px;flex:1;}
+.lbrow .lstat{text-align:right;font-weight:800;color:#A6760A;}
+.lbrow .lstat small{display:block;color:#999;font-weight:700;}
+
+/* avatar picker modal */
+.modal-bg{position:fixed;inset:0;background:rgba(40,36,70,.45);display:none;align-items:center;justify-content:center;padding:18px;z-index:50;}
+.modal-bg.show{display:flex;}
+.modal{background:#fff;border-radius:26px;padding:22px;width:100%;max-width:420px;box-shadow:0 20px 50px rgba(0,0,0,.3);}
+.modal h3{text-align:center;color:#534AB7;margin-bottom:14px;}
+.av-pick{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;}
+.av-pick button{font-size:34px;border-radius:14px;padding:6px 0;background:#F6F5FF;}
+.av-pick button.sel{background:#DAD6FA;box-shadow:0 0 0 3px #534AB7;}
+.modal input[type=text]{width:100%;font-size:19px;padding:12px 14px;border-radius:14px;border:2px solid #CECBF6;outline:none;margin-bottom:14px;text-align:center;font-weight:700;}
+
+/* confetti + celebration */
+#celebrate{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden;}
+.conf{position:absolute;font-size:28px;animation:fall 1.4s ease-in forwards;}
+@keyframes fall{0%{transform:translateY(-40px) rotate(0);opacity:1}100%{transform:translateY(110vh) rotate(360deg);opacity:0}}
+.cheer{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%) scale(0);z-index:61;font-size:72px;animation:pop 1s ease forwards;pointer-events:none;text-align:center;}
+@keyframes pop{0%{transform:translate(-50%,-50%) scale(0)}40%{transform:translate(-50%,-50%) scale(1.25)}60%{transform:translate(-50%,-50%) scale(.95)}100%{transform:translate(-50%,-50%) scale(1);opacity:0}}
+
+.hintline{text-align:center;color:#9a9aa8;font-size:13px;margin-top:14px;}
+.backbtn{align-self:flex-start;}
 </style>
 </head>
 <body>
 
-<!-- SPLASH -->
-<div id="screen-splash" class="screen active">
-  <div style="text-align:center;margin-bottom:24px">
-    <div style="font-size:72px">🌟</div>
-    <h1 style="font-size:38px;font-weight:800;color:#534AB7;margin:8px 0 4px">English Fun!</h1>
-    <p style="color:#888">Learn English step by step</p>
+<!-- CELEBRATION LAYER -->
+<div id="celebrate"></div>
+
+<!-- SPLASH: WHO IS PLAYING -->
+<div id="s-splash" class="screen active center">
+  <div class="wrap" style="text-align:center">
+    <div class="logo">🌟</div>
+    <h1 class="title">English Fun!</h1>
+    <div class="subtitle">Impara l'inglese giocando</div>
+    <div style="font-weight:800;color:#555;margin-bottom:12px;font-size:17px">Chi gioca oggi?</div>
+    <div id="roster" class="roster"></div>
   </div>
-  <div class="card">
-    <label style="font-size:14px;color:#555;font-weight:600">What's your name?</label>
-    <input type="text" id="name-input" placeholder="Enter your name..." maxlength="20"/>
-    <label style="font-size:14px;color:#555;font-weight:600">Choose your mode:</label>
-    <div style="display:flex;gap:12px;margin:10px 0 20px">
-      <button class="mode-btn mode-active-baby" id="btn-baby" onclick="setMode('baby')">🐣 Junior</button>
-      <button class="mode-btn" id="btn-explorer" onclick="setMode('explorer')">🚀 Explorer</button>
-      <button class="mode-btn" id="btn-advanced" onclick="setMode('advanced')">🎓 Advanced</button>
+</div>
+
+<!-- MODE PICK -->
+<div id="s-mode" class="screen">
+  <div class="wrap" style="flex:1;display:flex;flex-direction:column">
+    <div class="topbar">
+      <button class="iconbtn backbtn" onclick="showScreen('splash')">←</button>
+      <div class="pill"><span id="mode-player-av">🙂</span><span id="mode-player-name">—</span></div>
+      <button class="iconbtn" onclick="go('leaderboard')">🏆</button>
     </div>
-    <button class="btn-primary" onclick="goLevels()">Let's Go! 🚀</button>
-    <div style="text-align:center;margin-top:8px">
-      <button style="background:none;border:none;color:#888;font-size:15px;cursor:pointer" onclick="showScreen('leaderboard')">🏆 Leaderboard</button>
+    <h2 style="text-align:center;color:#534AB7;margin:10px 0 18px;font-size:26px">Scegli il gioco</h2>
+    <div class="modecard" style="border-left-color:#534AB7" onclick="pickMode('junior')">
+      <div class="mi">🐣</div>
+      <div><div class="mt" style="color:#534AB7">Junior</div><div class="md">Ascolta e tocca l'immagine giusta</div></div>
+    </div>
+    <div class="modecard" style="border-left-color:#185FA5" onclick="pickMode('explorer')">
+      <div class="mi">🚀</div>
+      <div><div class="mt" style="color:#185FA5">Explorer</div><div class="md">Ascolta, leggi e prova a dirlo</div></div>
+    </div>
+    <div class="modecard" style="border-left-color:#0F6E56" onclick="pickMode('advanced')">
+      <div class="mi">🎓</div>
+      <div><div class="mt" style="color:#0F6E56">Advanced</div><div class="md">Inglese B1 — frasi e parole difficili</div></div>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <button class="btn ghost" onclick="go('collection')">🎁 Collezione</button>
     </div>
   </div>
 </div>
 
 <!-- LEVELS -->
-<div id="screen-levels" class="screen">
-  <div class="top-bar">
-    <button class="top-btn" onclick="showScreen('splash')">← Back</button>
-    <span id="hi-name" style="font-weight:700;color:#534AB7;font-size:15px"></span>
-    <button class="top-btn" onclick="showScreen('leaderboard')">🏆</button>
+<div id="s-levels" class="screen">
+  <div class="wrap" style="flex:1;display:flex;flex-direction:column">
+    <div class="topbar">
+      <button class="iconbtn backbtn" onclick="showScreen('mode')">←</button>
+      <div class="pill">🪙 <span id="lv-coins">0</span></div>
+      <button class="iconbtn" onclick="go('collection')">🎁</button>
+    </div>
+    <h2 id="lv-title" style="text-align:center;color:#534AB7;margin:6px 0 4px;font-size:24px">Livelli</h2>
+    <p class="hintline" id="lv-sub">Completa un livello per sbloccare il successivo</p>
+    <div class="lv-grid" id="lv-grid" style="margin-top:8px"></div>
   </div>
-  <h2 style="text-align:center;color:#534AB7;margin-bottom:6px">Choose a Level</h2>
-  <p style="text-align:center;font-size:13px;color:#aaa;margin-bottom:20px">Complete a level to unlock the next one</p>
-  <div class="level-grid" id="level-grid"></div>
-  <p style="text-align:center;margin-top:16px;font-size:13px;color:#888" id="level-hint"></p>
 </div>
 
 <!-- PLAY -->
-<div id="screen-play" class="screen">
-  <div class="top-bar">
-    <button class="top-btn" onclick="showScreen('levels')">← Levels</button>
-    <span id="play-info" style="font-weight:700;color:#534AB7;font-size:14px"></span>
-    <button class="top-btn" onclick="showScreen('splash')">🏠</button>
-  </div>
-  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
-  <div id="word-results" style="display:flex;gap:6px;margin-bottom:14px"></div>
-  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
-    <div id="loading-words" style="text-align:center;display:none">
-      <div style="font-size:52px">⏳</div>
-      <div style="color:#534AB7;font-weight:700;margin-top:12px;font-size:18px">Loading level...</div>
-      <div style="color:#888;font-size:13px;margin-top:4px">AI is creating your words!</div>
+<div id="s-play" class="screen">
+  <div class="wrap" style="flex:1;display:flex;flex-direction:column">
+    <div class="topbar">
+      <button class="iconbtn backbtn" onclick="showScreen('levels')">←</button>
+      <div class="pill" id="play-level">Livello 1</div>
+      <div class="pill">🪙 <span id="play-coins">0</span></div>
     </div>
-    <div id="mic-denied" style="display:none;background:white;border-radius:24px;padding:28px;text-align:center;max-width:400px;width:100%">
-      <div style="font-size:52px">🎤❌</div>
-      <h3 style="color:#A32D2D;margin:12px 0 8px">Microphone blocked</h3>
-      <p style="color:#888;font-size:14px;line-height:1.6">Allow microphone in Chrome:<br><br>
-        <strong>Tap the 🔒 icon</strong> in the address bar → Permissions → Microphone → Allow<br><br>Then tap Try Again.</p>
-      <button onclick="retryMic()" style="background:#534AB7;color:white;border:none;border-radius:14px;padding:12px 24px;font-weight:700;margin-top:16px;font-size:15px">Try Again</button>
-    </div>
-    <div id="mic-unsupported" style="display:none;background:white;border-radius:24px;padding:28px;text-align:center;max-width:400px;width:100%">
-      <div style="font-size:52px">😞</div>
-      <h3 style="color:#A32D2D;margin:12px 0 8px">Browser not supported</h3>
-      <p style="color:#888;font-size:14px">Please use <strong>Google Chrome</strong> on your tablet.</p>
-    </div>
-    <div class="word-card" id="word-card" style="display:none">
-      <div id="word-emoji" style="font-size:88px;line-height:1.1;margin-bottom:10px"></div>
-      <div id="word-text" style="font-size:36px;font-weight:800;color:#534AB7;margin-bottom:4px;line-height:1.25"></div>
-      <div id="word-hint" style="font-size:13px;color:#bbb;margin-bottom:22px;font-style:italic"></div>
-      <div style="display:flex;gap:10px;justify-content:center;margin-bottom:18px">
-        <button class="btn-listen" onclick="doSpeak()">🔊 Listen</button>
-      </div>
-      <div id="rec-idle"><button class="btn-speak" onclick="startRecord()">🎤 Speak now!</button></div>
-      <div id="rec-recording" class="recording-box" style="display:none">🎤 Get ready... 2</div>
-      <div id="rec-loading" class="loading-box" style="display:none">⏳ Analysing pronunciation...</div>
-      <div id="rec-done" style="display:none;text-align:center">
-        <div id="stars-row" style="font-size:28px;letter-spacing:3px;margin-bottom:4px"></div>
-        <div id="feedback-box" class="feedback-box"></div>
-        <div id="transcript-box" style="margin-top:6px;font-size:12px;color:#bbb"></div>
-        <div style="display:flex;gap:8px;margin-top:14px;justify-content:center;flex-wrap:wrap">
-          <button class="btn-hear" onclick="doSpeak()">🔊 Hear</button>
-          <button class="btn-retry-word" onclick="retryWord()">🔁 Retry</button>
-          <button class="btn-next" id="btn-next-word" onclick="nextWord()">Next →</button>
-        </div>
-      </div>
-    </div>
+    <div class="dots" id="play-dots"></div>
+    <div class="playarea" id="play-area"></div>
   </div>
 </div>
 
 <!-- RESULT -->
-<div id="screen-result" class="screen">
-  <div class="result-card">
-    <div id="result-emoji" style="font-size:72px"></div>
-    <h2 id="result-title" style="font-size:28px;font-weight:800;color:#534AB7;margin:8px 0"></h2>
-    <p id="result-sub" style="color:#888;margin-bottom:16px"></p>
-    <div id="result-dots" style="display:flex;justify-content:center;gap:10px;margin-bottom:20px"></div>
-    <div id="result-score" style="border-radius:14px;padding:12px 0;margin-bottom:20px;font-weight:700;font-size:16px;text-align:center"></div>
+<div id="s-result" class="screen center">
+  <div class="wrap card" style="max-width:420px">
+    <div class="resultbig" id="res-emoji">🏆</div>
+    <h2 id="res-title" style="font-size:28px;font-weight:900;color:#534AB7;margin:6px 0">Livello finito!</h2>
+    <div class="coinline">🪙 <span id="res-coins">0</span> monete</div>
+    <div id="res-stars" class="stars" style="margin:6px 0"></div>
+    <p id="res-sub" style="color:#8a8a9a;margin:8px 0 18px"></p>
     <div style="display:flex;flex-direction:column;gap:10px">
-      <button id="btn-next-level" class="btn-primary" onclick="nextLevel()" style="display:none"></button>
-      <button onclick="retryLevel()" style="background:white;color:#534AB7;border:2px solid #534AB7;border-radius:16px;padding:12px 0;font-size:15px;font-weight:700;width:100%">🔁 Retry Level</button>
-      <button onclick="showScreen('levels')" style="background:none;color:#aaa;border:none;font-size:14px;cursor:pointer;margin-top:2px">Choose another level</button>
+      <button id="res-next" class="big" onclick="nextLevel()">Livello successivo ▶</button>
+      <button class="btn ghost" onclick="go('collection')">🎁 Vai alla collezione</button>
+      <button class="btn ghost" onclick="showScreen('levels')">Scegli un altro livello</button>
     </div>
+  </div>
+</div>
+
+<!-- COLLECTION / SHOP -->
+<div id="s-collection" class="screen">
+  <div class="wrap" style="flex:1;display:flex;flex-direction:column">
+    <div class="topbar">
+      <button class="iconbtn backbtn" onclick="showScreen(state.mode?'levels':'mode')">←</button>
+      <div class="pill">🪙 <span id="col-coins">0</span></div>
+      <div style="width:44px"></div>
+    </div>
+    <h2 style="text-align:center;color:#534AB7;margin:4px 0;font-size:24px">La mia collezione</h2>
+    <p class="hintline">Gioca per guadagnare monete e apri le sorprese!</p>
+    <div style="text-align:center;margin:14px 0">
+      <button id="surprise-btn" class="big" style="max-width:320px;margin:0 auto" onclick="openSurprise()">🎁 Apri sorpresa — 20 🪙</button>
+    </div>
+    <div class="sticker-grid" id="sticker-grid" style="margin-top:6px"></div>
   </div>
 </div>
 
 <!-- LEADERBOARD -->
-<div id="screen-leaderboard" class="screen">
-  <div class="top-bar">
-    <button class="top-btn" onclick="lbBack()">← Back</button>
-    <h2 style="color:#534AB7;font-size:20px">🏆 Leaderboard</h2>
-    <button class="top-btn" style="color:#ccc" onclick="togglePin()">⚙️</button>
-  </div>
-  <div id="pin-panel" style="display:none;background:white;border-radius:20px;padding:20px;margin-bottom:16px;text-align:center">
-    <div style="font-weight:700;margin-bottom:8px;color:#534AB7">Admin PIN</div>
-    <input type="password" id="pin-input" placeholder="Enter PIN" style="width:60%;text-align:center"/>
-    <div id="pin-error" style="color:red;font-size:13px;margin-bottom:6px;display:none">Wrong PIN!</div>
-    <div style="display:flex;gap:10px;justify-content:center">
-      <button onclick="doReset()" style="background:#FCEBEB;color:#A32D2D;border:none;border-radius:10px;padding:8px 18px;font-weight:700">Reset All</button>
-      <button onclick="togglePin()" style="background:#eee;border:none;border-radius:10px;padding:8px 18px;cursor:pointer">Cancel</button>
+<div id="s-leaderboard" class="screen">
+  <div class="wrap" style="flex:1;display:flex;flex-direction:column">
+    <div class="topbar">
+      <button class="iconbtn backbtn" onclick="showScreen(state.player?'mode':'splash')">←</button>
+      <h2 style="color:#534AB7;font-size:22px">🏆 Classifica</h2>
+      <button class="iconbtn" style="color:#ccc" onclick="toggleAdmin()">⚙️</button>
     </div>
+    <div id="admin-panel" style="display:none;background:#fff;border-radius:18px;padding:16px;margin-bottom:12px;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.06)">
+      <div style="font-weight:800;color:#534AB7;margin-bottom:8px">PIN genitore</div>
+      <input id="admin-pin" type="password" placeholder="PIN" style="width:55%;text-align:center;font-size:17px;padding:8px 12px;border-radius:12px;border:2px solid #ddd;outline:none">
+      <div id="admin-err" style="color:#c0392b;font-size:13px;margin:6px 0;display:none">PIN errato</div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" style="background:#FCEBEB;color:#A32D2D;box-shadow:0 4px 0 #f0cccc" onclick="adminReset()">Azzera tutto</button>
+        <button class="btn ghost" onclick="toggleAdmin()">Annulla</button>
+      </div>
+    </div>
+    <div id="lb-list"></div>
   </div>
-  <div id="lb-list" style="max-width:480px;margin:0 auto;width:100%"></div>
+</div>
+
+<!-- AVATAR / NEW PLAYER MODAL -->
+<div id="player-modal" class="modal-bg">
+  <div class="modal">
+    <h3>Nuovo giocatore</h3>
+    <div class="av-pick" id="av-pick"></div>
+    <input id="new-name" type="text" maxlength="14" placeholder="Il tuo nome">
+    <button class="big" onclick="createPlayer()">Crea ✨</button>
+    <button class="btn ghost" style="width:100%;margin-top:10px" onclick="closeModal()">Annulla</button>
+  </div>
 </div>
 
 <script>
-// ── COSTANTI ──────────────────────────────────────────────────────────────
-var SUPERUSER_PIN = "1234";
-var CLAUDE_MODEL  = "claude-haiku-4-5-20251001";
-var API_URL       = "https://english-fun-production.up.railway.app/api/claude";
-var APP_TOKEN     = "GiulioSofia1621!";
+/* ============================ CONFIG ============================ */
+var API_URL   = "https://english-fun-production.up.railway.app/api/claude";
+var APP_TOKEN = "GiulioSofia1621!";
+var MODEL     = "claude-haiku-4-5-20251001";
+var ADMIN_PIN = "1234";
 
-// ── STATO ────────────────────────────────────────────────────────────────
+var BASE_COIN    = 5;   // per parola completata
+var FIRSTTRY_BON = 3;   // junior: azzeccata al primo colpo
+var SPEAK_BON_HI = 6;   // pronuncia ottima (4-5 stelle)
+var SPEAK_BON_MD = 3;   // pronuncia ok (3 stelle)
+var SURPRISE_COST= 20;
+
+var AVATARS  = ["🦊","🐱","🐶","🐸","🦁","🐼","🐯","🐵","🦄","🐧","🐙","🦋","🐢","🦖","🐬","🐝"];
+var STICKERS = ["🦄","🐉","🦖","🐙","🦋","🦜","🐳","🦊","🐨","🦁","🐧","🦩","🦚","🐢","🦉","🐬","🌈","⭐","🚀","🏆"];
+
+/* ============================ STATE ============================ */
 var state = {
-  playerName:   "Player",
-  mode:         "baby",
-  level:        1,
-  unlockedUpTo: 1,
-  words:        [],
-  wordIdx:      0,
-  results:      [],
-  leaderboard:  []
+  player:null,      // {name, avatar}
+  mode:null,        // junior | explorer | advanced
+  level:1,
+  unlockedUpTo:1,
+  words:[],
+  wordIdx:0,
+  levelStars:[],    // stelle per parola nel livello corrente
+  levelCoins:0,     // monete guadagnate nel livello corrente
+  answered:false,   // junior: ha gia' risposto a questa parola
+  coins:0,          // monete totali del giocatore
+  stickers:[]       // adesivi posseduti
 };
+var pendingAvatar = AVATARS[0];
 
-// ── STORAGE ───────────────────────────────────────────────────────────────
-function mkKey(k) {
-  var p = state.playerName.toLowerCase().replace(/[^a-z0-9]/g, "_");
-  return "ef_" + k + "_" + p + "_" + state.mode;
-}
-function sGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
-function sSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
+/* ============================ STORAGE ============================ */
+function sget(k){ try{return localStorage.getItem(k);}catch(e){return null;} }
+function sset(k,v){ try{localStorage.setItem(k,v);}catch(e){} }
+function slug(s){ return (s||"").toLowerCase().replace(/[^a-z0-9]/g,"_"); }
 
-function loadPlayerName() {
-  var pn = sGet("ef_player");
-  if (pn) { state.playerName = pn; document.getElementById("name-input").value = pn; }
-}
-function loadModeData() {
-  var ul = sGet(mkKey("unlocked"));
-  state.unlockedUpTo = ul ? (parseInt(ul) || 1) : 1;
-  var lb = sGet(mkKey("lb"));
-  state.leaderboard = lb ? (JSON.parse(lb) || []) : [];
-}
-function saveAll() {
-  sSet("ef_player", state.playerName);
-  sSet(mkKey("unlocked"), String(state.unlockedUpTo));
-  sSet(mkKey("lb"), JSON.stringify(state.leaderboard));
-}
+function getRoster(){ var r=sget("ef_roster"); if(!r)return[]; try{return JSON.parse(r)||[];}catch(e){return[];} }
+function saveRoster(r){ sset("ef_roster", JSON.stringify(r)); }
 
-// ── AUDIO UNLOCK ──────────────────────────────────────────────────────────
-var _audioUnlocked = false;
-function unlockAudio() {
-  if (_audioUnlocked) return;
-  _audioUnlocked = true;
-  try {
-    var ctx = new (window.AudioContext || window.webkitAudioContext)();
-    var buf = ctx.createBuffer(1, 1, 22050);
-    var src = ctx.createBufferSource();
-    src.buffer = buf;
-    src.connect(ctx.destination);
-    src.start(0);
-  } catch(e) {}
+function loadPlayerData(){
+  var p=slug(state.player.name);
+  state.coins    = parseInt(sget("ef_coins_"+p))||0;
+  var st=sget("ef_stickers_"+p); state.stickers = st?(JSON.parse(st)||[]):[];
+}
+function saveCoins(){ sset("ef_coins_"+slug(state.player.name), String(state.coins)); }
+function saveStickers(){ sset("ef_stickers_"+slug(state.player.name), JSON.stringify(state.stickers)); }
+function loadProgress(){
+  var k="ef_prog_"+slug(state.player.name)+"_"+state.mode;
+  state.unlockedUpTo = parseInt(sget(k))||1;
+}
+function saveProgress(){
+  var k="ef_prog_"+slug(state.player.name)+"_"+state.mode;
+  sset(k, String(state.unlockedUpTo));
 }
 
-// ── VOCE ──────────────────────────────────────────────────────────────────
-var voices = [];
-function loadVoices() { voices = window.speechSynthesis.getVoices(); }
-window.speechSynthesis.onvoiceschanged = loadVoices;
-loadVoices();
-
-function getBestVoice() {
-  var v = window.speechSynthesis.getVoices();
-  return v.find(function(x) {
-    return x.name.indexOf("Samantha") > -1 || x.name.indexOf("Karen") > -1 || x.name.indexOf("Google US English") > -1;
-  }) || v.find(function(x) {
-    return x.lang === "en-US" && x.name.toLowerCase().indexOf("compact") === -1;
-  }) || v.find(function(x) {
-    return x.lang.indexOf("en") === 0;
-  }) || null;
+/* ============================ AUDIO ============================ */
+var _audioUnlocked=false;
+function unlockAudio(){
+  if(_audioUnlocked)return; _audioUnlocked=true;
+  try{
+    var ctx=new (window.AudioContext||window.webkitAudioContext)();
+    var b=ctx.createBuffer(1,1,22050); var s=ctx.createBufferSource();
+    s.buffer=b; s.connect(ctx.destination); s.start(0);
+  }catch(e){}
+  // scalda il motore vocale cosi' la primissima parola non viene tagliata
+  try{
+    if(window.speechSynthesis){
+      var w=new SpeechSynthesisUtterance("a");
+      w.volume=0; w.rate=1; w.lang="en-US"; var vo=bestVoice(); if(vo)w.voice=vo;
+      window.speechSynthesis.speak(w);
+    }
+  }catch(e){}
 }
-
-// ── SPEAK (sempre lento, un solo bottone) ─────────────────────────────────
-var _speakCount = 0;
-function doSpeak() {
+var _voices=[];
+function loadVoices(){ _voices=window.speechSynthesis.getVoices(); }
+if(window.speechSynthesis){ window.speechSynthesis.onvoiceschanged=loadVoices; loadVoices(); }
+function bestVoice(){
+  var v=window.speechSynthesis.getVoices();
+  if(!v||!v.length)return null;
+  // SOLO voci inglesi: mai una voce italiana a leggere l'inglese
+  var en=v.filter(function(x){return x.lang.indexOf("en")===0;});
+  if(!en.length)return null; // nessuna voce inglese: meglio nessuna voce scelta che l'italiano
+  function f(p){ return en.find(p); }
+  return f(function(x){return x.localService&&x.lang==="en-US"&&x.name.toLowerCase().indexOf("compact")===-1;}) // 1. locale en-US
+      || f(function(x){return x.localService;})                                                               // 2. qualsiasi inglese locale
+      || f(function(x){return /Google US English|Samantha|Karen|Aria|Zira|David|Guy|Daniel|Serena/i.test(x.name);}) // 3. voci note (anche di rete)
+      || f(function(x){return x.lang==="en-US";})                                                             // 4. en-US di rete
+      || f(function(x){return x.lang==="en-GB";})                                                             // 5. en-GB
+      || en[0];                                                                                               // 6. una qualsiasi inglese
+}
+function voicesReady(){ return !!(window.speechSynthesis && window.speechSynthesis.getVoices().length); }
+function whenVoices(cb){
+  if(voicesReady()){ cb(); return; }
+  var n=0; var iv=setInterval(function(){ n++; if(voicesReady()||n>25){ clearInterval(iv); cb(); } },80);
+}
+function speak(text){
   unlockAudio();
-  var w = state.words[state.wordIdx];
-  if (!w) return;
-  window.speechSynthesis.cancel();
-  var len = w.text.replace(/\s/g, "").length;
-  var isFirst = (_speakCount === 0);
-  _speakCount++;
-  var delay = (len <= 3 ? 900 : len <= 6 ? 700 : len <= 10 ? 500 : 350);
-  if (isFirst) delay += 700;
-  setTimeout(function() {
-    var u = new SpeechSynthesisUtterance(w.text);
-    u.lang = "en-US"; u.rate = 0.65; u.pitch = 1.05; u.volume = 1;
-    var v = getBestVoice(); if (v) u.voice = v;
-    window.speechSynthesis.speak(u);
-  }, delay);
+  if(!window.speechSynthesis)return;
+  whenVoices(function(){
+    window.speechSynthesis.cancel();
+    var vo=bestVoice();
+    var fired=false;
+    function sayReal(){
+      if(fired)return; fired=true;
+      var u=new SpeechSynthesisUtterance(text);
+      u.lang="en-US"; u.rate=0.72; u.pitch=1.05; u.volume=1;
+      if(vo)u.voice=vo;                 // voce inglese forzata
+      window.speechSynthesis.speak(u);
+    }
+    // primer muto: assorbe l'attacco tagliato del motore vocale
+    var primer=new SpeechSynthesisUtterance("a");
+    primer.volume=0; primer.rate=1; primer.lang="en-US"; if(vo)primer.voice=vo;
+    primer.onend=sayReal;
+    setTimeout(sayReal,500);            // fallback se onend non scatta
+    setTimeout(function(){ try{ window.speechSynthesis.speak(primer); }catch(e){ sayReal(); } },180);
+  });
 }
 
-// ── SCHERMATE ─────────────────────────────────────────────────────────────
-function showScreen(id) {
-  var ss = document.querySelectorAll(".screen");
-  for (var i = 0; i < ss.length; i++) ss[i].classList.remove("active");
-  document.getElementById("screen-" + id).classList.add("active");
-  if (id === "levels") renderLevels();
-  if (id === "leaderboard") renderLeaderboard();
+/* ============================ SPEECH RECOGNITION (bonus, mai bloccante) ============================ */
+// cb(stars, saidText) ; stars=null se non ha sentito (nessuna penalita')
+function listen(target, onCountdown, cb){
+  unlockAudio();
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){ cb(null); return; }
+  var rec=new SR();
+  rec.lang="en-US"; rec.interimResults=false; rec.maxAlternatives=5; rec.continuous=false;
+  var done=false, got=false, timer;
+  function finish(alts){
+    if(done)return; done=true; clearTimeout(timer);
+    if(!alts||!alts.length){ cb(null); return; }
+    analyse(alts, target, cb);
+  }
+  rec.onresult=function(e){ got=true; var a=[]; for(var i=0;i<e.results[0].length;i++)a.push(e.results[0][i].transcript.trim()); finish(a); };
+  rec.onerror=function(e){ if(e.error==="not-allowed"){ done=true; clearTimeout(timer); cb("denied"); } else finish([]); };
+  rec.onend=function(){
+    if(!got&&!done){
+      // mobile: onend prima di onresult -> un retry silenzioso
+      done=true; clearTimeout(timer);
+      try{
+        var r2=new SR(); r2.lang="en-US"; r2.interimResults=false; r2.maxAlternatives=5; r2.continuous=false;
+        var g2=false;
+        r2.onresult=function(e2){ g2=true; var a2=[]; for(var i=0;i<e2.results[0].length;i++)a2.push(e2.results[0][i].transcript.trim()); if(a2.length)analyse(a2,target,cb); else cb(null); };
+        r2.onerror=function(){ if(!g2)cb(null); };
+        r2.onend=function(){ if(!g2)cb(null); };
+        r2.start(); setTimeout(function(){try{r2.stop();}catch(e){}},8000);
+      }catch(e){ cb(null); }
+    }
+  };
+  try{ rec.start(); }catch(e){ cb(null); return; }
+  timer=setTimeout(function(){ try{rec.stop();}catch(e){} finish([]); },12000);
+  if(onCountdown){
+    var n=2; onCountdown(n);
+    var iv=setInterval(function(){ n--; if(n>0)onCountdown(n); else{ clearInterval(iv); onCountdown(0); } },1000);
+  }
+}
+function analyse(alts, target, cb){
+  var age = state.mode==="junior"?"5":(state.mode==="advanced"?"adult B1":"10");
+  var prompt='You are a warm English pronunciation coach for a '+age+' Italian learner.\n'
+    +'Target: "'+target+'"\nSpeech engine heard: '+JSON.stringify(alts)+'\n'
+    +'Be encouraging and fairly generous: give 4 stars when clearly understandable even with an Italian accent, 5 only for near-native, 3 if recognizable but off. Never below 3 unless totally different.\n'
+    +'Respond ONLY with JSON: {"stars":N,"feedback":"<max 12 words, kind, in Italian>"}';
+  fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json","x-app-token":APP_TOKEN},
+    body:JSON.stringify({model:MODEL,max_tokens:300,messages:[{role:"user",content:prompt}]})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var t=""; for(var i=0;i<d.content.length;i++){if(d.content[i].type==="text"){t=d.content[i].text;break;}}
+      t=t.replace(/```json/g,"").replace(/```/g,"").trim();
+      var p=JSON.parse(t); var s=Math.max(3,Math.min(5,p.stars||3));
+      cb(s, p.feedback||"Bravo!");
+    })
+    .catch(function(){
+      var said=(alts[0]||"").toLowerCase(), tgt=target.toLowerCase();
+      var ok=said.indexOf(tgt)>-1||tgt.indexOf(said)>-1;
+      cb(ok?4:3, ok?"Ottima pronuncia! 🌟":"Ci siamo quasi!");
+    });
 }
 
-function setMode(m) {
-  state.mode = m;
-  document.getElementById("btn-baby").className     = "mode-btn" + (m === "baby"     ? " mode-active-baby"     : "");
-  document.getElementById("btn-explorer").className = "mode-btn" + (m === "explorer" ? " mode-active-explorer" : "");
-  document.getElementById("btn-advanced").className = "mode-btn" + (m === "advanced" ? " mode-active-advanced" : "");
+/* ============================ NAVIGATION ============================ */
+function showScreen(id){
+  var ss=document.querySelectorAll(".screen");
+  for(var i=0;i<ss.length;i++)ss[i].classList.remove("active");
+  document.getElementById("s-"+id).classList.add("active");
+  window.scrollTo(0,0);
+}
+function go(id){
+  if(id==="collection")renderCollection();
+  if(id==="leaderboard")renderLeaderboard();
+  showScreen(id);
 }
 
-function goLevels() {
-  var n = document.getElementById("name-input").value.trim();
-  state.playerName = n || "Player";
-  loadModeData();
-  saveAll();
-  document.getElementById("hi-name").textContent = "Hi, " + state.playerName + "! 👋";
-  var hint = document.getElementById("level-hint");
-  if (state.mode === "advanced") hint.textContent = "🎓 B1 English · 30 levels";
-  else hint.textContent = "🔤 Words (lv 1-29) · 📝 Phrases (lv 30-50)";
+/* ============================ SPLASH / PLAYERS ============================ */
+function renderRoster(){
+  var r=getRoster(); var el=document.getElementById("roster"); el.innerHTML="";
+  r.forEach(function(p,idx){
+    var d=document.createElement("div"); d.className="pcard";
+    d.innerHTML='<div class="av">'+p.avatar+'</div><div class="pn">'+p.name+'</div>';
+    d.onclick=function(){ unlockAudio(); choosePlayer(idx); };
+    el.appendChild(d);
+  });
+  var add=document.createElement("div"); add.className="pcard add";
+  add.innerHTML='<div class="av">➕</div><div>Nuovo</div>';
+  add.onclick=function(){ unlockAudio(); openNewPlayer(); };
+  el.appendChild(add);
+}
+function choosePlayer(idx){
+  var r=getRoster(); state.player=r[idx];
+  loadPlayerData();
+  document.getElementById("mode-player-av").textContent=state.player.avatar;
+  document.getElementById("mode-player-name").textContent=state.player.name;
+  showScreen("mode");
+}
+function openNewPlayer(){
+  pendingAvatar=AVATARS[0];
+  var ap=document.getElementById("av-pick"); ap.innerHTML="";
+  AVATARS.forEach(function(a){
+    var b=document.createElement("button"); b.textContent=a;
+    if(a===pendingAvatar)b.className="sel";
+    b.onclick=function(){ pendingAvatar=a; var bs=ap.querySelectorAll("button"); for(var i=0;i<bs.length;i++)bs[i].className=""; b.className="sel"; };
+    ap.appendChild(b);
+  });
+  document.getElementById("new-name").value="";
+  document.getElementById("player-modal").classList.add("show");
+}
+function closeModal(){ document.getElementById("player-modal").classList.remove("show"); }
+function createPlayer(){
+  var name=document.getElementById("new-name").value.trim();
+  if(!name)name="Player";
+  var r=getRoster(); r.push({name:name,avatar:pendingAvatar}); saveRoster(r);
+  closeModal(); renderRoster();
+  choosePlayer(r.length-1);
+}
+
+/* ============================ MODE / LEVELS ============================ */
+function modeInfo(m){
+  if(m==="junior")   return {max:50,accent:"#534AB7",title:"🐣 Junior",sub:"Ascolta e tocca l'immagine"};
+  if(m==="explorer") return {max:50,accent:"#185FA5",title:"🚀 Explorer",sub:"🔤 Parole 1-29 · 📝 Frasi 30-50"};
+  return {max:30,accent:"#0F6E56",title:"🎓 Advanced",sub:"Inglese B1 · 30 livelli"};
+}
+function pickMode(m){
+  unlockAudio();
+  state.mode=m; state.level=1;
+  loadProgress();
+  renderLevels();
   showScreen("levels");
 }
-
-function lbBack() { showScreen(state.playerName ? "levels" : "splash"); }
-
-// ── LIVELLI ───────────────────────────────────────────────────────────────
-var ALL_TOPICS = ["animals","colors","food","family","home","school","body","weather",
-  "clothes","transport","numbers","shapes","sports","toys","nature",
-  "emotions","jobs","places","music","science","space","ocean","farm","city","jungle"];
-
-function renderLevels() {
-  var isAdv  = state.mode === "advanced";
-  var maxLvl = isAdv ? 30 : 50;
-  var accent = isAdv ? "#0F6E56" : "#534AB7";
-  var g = document.getElementById("level-grid");
-  g.innerHTML = "";
-  for (var i = 0; i < maxLvl; i++) {
-    var l = i + 1;
-    var unlocked = l <= state.unlockedUpTo;
-    var isPhrase = !isAdv && l >= 30;
-    var btn = document.createElement("button");
-    btn.style.borderColor = unlocked ? accent : "#ddd";
-    btn.style.color       = unlocked ? accent : "#aaa";
-    if (unlocked) {
-      btn.className = "level-btn" + (isPhrase ? " phrase" : "");
-      btn.innerHTML = (isPhrase ? "<span style='font-size:13px;color:#888'>📝</span><br>" : "") + l;
-      (function(lv) { btn.onclick = function() { startLevel(lv); }; })(l);
-    } else {
-      btn.className = "level-btn locked";
-      btn.innerHTML = "🔒";
-      btn.disabled  = true;
+function renderLevels(){
+  var inf=modeInfo(state.mode);
+  document.getElementById("lv-title").textContent=inf.title;
+  document.getElementById("lv-sub").textContent=inf.sub;
+  document.getElementById("lv-coins").textContent=state.coins;
+  var g=document.getElementById("lv-grid"); g.innerHTML="";
+  for(var i=0;i<inf.max;i++){
+    var l=i+1, unlocked=l<=state.unlockedUpTo;
+    var isPhrase=(state.mode==="explorer"&&l>=30)||(state.mode==="advanced"&&l>=16);
+    var b=document.createElement("button"); b.className="lv"+(unlocked?"":" locked");
+    if(unlocked){
+      b.style.color=inf.accent;
+      b.innerHTML=(isPhrase?'<span class="tag">📝</span>':'')+l;
+      (function(lv){ b.onclick=function(){ unlockAudio(); startLevel(lv); }; })(l);
+    }else{
+      b.innerHTML="🔒";
     }
-    g.appendChild(btn);
+    g.appendChild(b);
   }
 }
 
-// ── GIOCO ─────────────────────────────────────────────────────────────────
-function startLevel(lvl) {
-  state.level   = lvl;
-  state.wordIdx = 0;
-  state.results = [];
+/* ============================ PLAY ============================ */
+function startLevel(lvl){
+  state.level=lvl; state.wordIdx=0; state.levelStars=[]; state.levelCoins=0;
+  document.getElementById("play-level").textContent="Livello "+lvl;
+  document.getElementById("play-coins").textContent=state.coins;
+  renderDots();
   showScreen("play");
-  document.getElementById("play-info").textContent         = "Level " + lvl + " · Word 1/5";
-  document.getElementById("loading-words").style.display   = "block";
-  document.getElementById("word-card").style.display       = "none";
-  document.getElementById("mic-denied").style.display      = "none";
-  document.getElementById("mic-unsupported").style.display = "none";
-  updateProgress();
+  var area=document.getElementById("play-area");
+  area.innerHTML='<div style="text-align:center"><div style="font-size:54px">⏳</div><div style="color:#534AB7;font-weight:800;margin-top:10px;font-size:18px">Preparo il livello '+lvl+'…</div></div>';
   fetchWords(lvl);
 }
-
-function fetchWords(lvl) {
-  var isPhrase = lvl >= 30;
-  var isBaby   = state.mode === "baby";
-  var topic    = ALL_TOPICS[Math.floor(Math.random() * ALL_TOPICS.length)];
-  var seed     = Math.random().toString(36).slice(2, 10);
-
-  var modeGuide, phoneticGuide;
-  if (isBaby) {
-    modeGuide = "a 5-year-old Italian child, complete beginner. ONLY very short, high-frequency English words.";
-    if      (lvl <= 5)  phoneticGuide = "CVC words only: cat, dog, red, big, cup. Max 3 letters.";
-    else if (lvl <= 10) phoneticGuide = "1-2 syllable words. Avoid th/w/r. Example: ball, fish, jump, cake.";
-    else if (lvl <= 15) phoneticGuide = "1-2 syllables. Introduce w sound (water, warm).";
-    else if (lvl <= 20) phoneticGuide = "Introduce th (this, that). Blends: bl, cl, fl.";
-    else if (lvl <= 25) phoneticGuide = "Silent letters: knife, know, walk, talk.";
-    else if (lvl <= 29) phoneticGuide = "Mix all sounds. Short combos like big dog, red apple.";
-    else if (lvl <= 35) phoneticGuide = "Simple 3-4 word phrases: I like cats, She is happy.";
-    else if (lvl <= 42) phoneticGuide = "4-5 word sentences: The cat is sleeping, I want some milk.";
-    else                phoneticGuide = "5-6 word sentences: Can I have some water?";
+function renderDots(){
+  var d=document.getElementById("play-dots"); d.innerHTML="";
+  for(var i=0;i<5;i++){
+    var s=document.createElement("div");
+    s.className="dot"+(i<state.wordIdx?" ok":(i===state.wordIdx?" cur":""));
+    d.appendChild(s);
+  }
+}
+function fetchWords(lvl){
+  var m=state.mode;
+  var isPhrase=(m==="explorer"&&lvl>=30)||(m==="advanced"&&lvl>=16);
+  var topics=["animals","colors","food","family","home","school","body","weather","clothes","transport","numbers","toys","nature","sports","jobs","places","emotions","ocean","space","farm"];
+  var topic=topics[Math.floor(Math.random()*topics.length)];
+  var seed=Math.random().toString(36).slice(2,10);
+  var guide, who;
+  if(m==="junior"){
+    who="a young Italian child who cannot read yet. Single simple words only, easy to picture with an emoji.";
+    if(lvl<=10) guide="very common CVC words: cat, dog, sun, cup, bed, hat.";
+    else if(lvl<=20) guide="common 1-2 syllable words: apple, water, house, flower, rabbit.";
+    else if(lvl<=35) guide="slightly longer familiar words: elephant, umbrella, butterfly, banana.";
+    else guide="less common but picturable words: rainbow, volcano, dolphin, dinosaur.";
+  } else if(m==="advanced"){
+    who="an Italian adult/teen learning English at B1 level.";
+    if(!isPhrase) guide="B1 words tricky for Italians: through, schedule, comfortable, thorough, Wednesday, necessary.";
+    else guide="natural B1 phrases with connected speech: 'I was wondering if you could', 'It depends on the weather', 'I would rather stay home'.";
   } else {
-    modeGuide = "a 10-year-old Italian child with basic English. Use harder vocabulary and pronunciation.";
-    if      (lvl <= 5)  phoneticGuide = "2-syllable words: garden, window, monkey, purple, tiger.";
-    else if (lvl <= 10) phoneticGuide = "Include th (think, both) and w (world). 2-3 syllables.";
-    else if (lvl <= 15) phoneticGuide = "Words with r (river), ae (cat, black). 2-3 syllables.";
-    else if (lvl <= 20) phoneticGuide = "sh (shoe), ch (church), j (judge). 3 syllables.";
-    else if (lvl <= 25) phoneticGuide = "Tricky: ough, silent letters, irregular stress. 3-4 syllables.";
-    else if (lvl <= 29) phoneticGuide = "Clusters: str, spr. Long vowels: beautiful, thoroughly.";
-    else if (lvl <= 35) phoneticGuide = "Short A2 phrases: She brought three things, I usually walk there.";
-    else if (lvl <= 42) phoneticGuide = "Medium phrases: I want to go to the park, What are you doing?";
-    else                phoneticGuide = "Longer A2: What do you usually do on weekends?";
+    who="an Italian child/teen with basic English.";
+    if(!isPhrase){
+      if(lvl<=10) guide="2-syllable words: garden, window, monkey, purple.";
+      else if(lvl<=20) guide="words with th/w/r sounds: brother, weather, world, three.";
+      else guide="harder words: beautiful, strength, thousand, through.";
+    } else guide="short A2 phrases: 'I like pizza', 'She is my friend', 'What time is it?', 'Let us go home'.";
   }
+  var prompt="Generate exactly 5 unique English "+(isPhrase?"phrases":"words")+" for "+who+"\n"
+    +"Level "+lvl+". Topic: "+topic+". Difficulty: "+guide+"\n"
+    +"Each needs ONE emoji that clearly represents it (important: emojis must be different from each other).\n"
+    +"Seed "+seed+". Respond ONLY with a JSON array, no markdown:\n"
+    +'[{"text":"...","emoji":"...","hint":"..."}] — hint = short Italian translation (max 4 words).';
+  fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json","x-app-token":APP_TOKEN},
+    body:JSON.stringify({model:MODEL,max_tokens:700,messages:[{role:"user",content:prompt}]})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      var t=""; for(var i=0;i<d.content.length;i++){if(d.content[i].type==="text"){t=d.content[i].text;break;}}
+      t=t.replace(/```json/g,"").replace(/```/g,"").trim();
+      state.words=JSON.parse(t).slice(0,5);
+      renderRound();
+    })
+    .catch(function(){
+      state.words=[{text:"Cat",emoji:"🐱",hint:"gatto"},{text:"Dog",emoji:"🐶",hint:"cane"},{text:"Sun",emoji:"☀️",hint:"sole"},{text:"Apple",emoji:"🍎",hint:"mela"},{text:"Fish",emoji:"🐟",hint:"pesce"}];
+      renderRound();
+    });
+}
+function renderRound(){
+  renderDots();
+  document.getElementById("play-coins").textContent=state.coins;
+  if(state.mode==="junior") renderJunior();
+  else renderReader();
+}
 
-  var prompt = "Generate exactly 5 unique English " + (isPhrase ? "phrases" : "words") + " for " + modeGuide + "\n"
-    + "Level: " + lvl + "/50. Topic: " + topic + ".\nPronunciation: " + phoneticGuide + "\n"
-    + "Rules: all 5 different, fit topic, follow difficulty, seed: " + seed + "\n"
-    + "Respond ONLY with valid JSON array, no markdown:\n"
-    + '[{"text":"...","emoji":"...","hint":"..."},...]\n'
-    + "hint = Italian translation, max 4 words.";
-
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-app-token": APP_TOKEN },
-    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 1000, messages: [{ role: "user", content: prompt }] })
-  })
-  .then(function(res) { return res.json(); })
-  .then(function(data) {
-    var txt = "";
-    for (var i = 0; i < data.content.length; i++) {
-      if (data.content[i].type === "text") { txt = data.content[i].text; break; }
-    }
-    txt = txt.replace(/```json/g, "").replace(/```/g, "").trim();
-    state.words = JSON.parse(txt).slice(0, 5);
-    document.getElementById("loading-words").style.display = "none";
-    renderWord();
-  })
-  .catch(function(err) {
-    document.getElementById("loading-words").innerHTML =
-      '<div style="color:#A32D2D;font-size:13px;padding:12px;background:#FCEBEB;border-radius:12px;max-width:400px;word-break:break-all">'
-      + '<strong>API Error:</strong><br>' + (err ? err.toString() : "unknown") + '</div>';
+/* ---- JUNIOR: ascolta e tocca ---- */
+function renderJunior(){
+  state.answered=false;
+  var w=state.words[state.wordIdx];
+  // tre scelte: corretta + 2 emoji diverse
+  var pool=[]; for(var i=0;i<state.words.length;i++){ if(i!==state.wordIdx && state.words[i].emoji!==w.emoji && pool.indexOf(state.words[i].emoji)<0) pool.push(state.words[i].emoji); }
+  while(pool.length<2){ var e=STICKERS[Math.floor(Math.random()*STICKERS.length)]; if(e!==w.emoji&&pool.indexOf(e)<0)pool.push(e); }
+  var opts=[w.emoji,pool[0],pool[1]];
+  // shuffle
+  for(var k=opts.length-1;k>0;k--){ var j=Math.floor(Math.random()*(k+1)); var tmp=opts[k];opts[k]=opts[j];opts[j]=tmp; }
+  var area=document.getElementById("play-area");
+  var html='<div style="font-size:19px;font-weight:800;color:#534AB7">Tocca: ascolta e scegli! 👂</div>'
+    +'<button class="btn listen big-mic" onclick="speak(state.words[state.wordIdx].text)">🔊 Ascolta</button>'
+    +'<div class="choices">';
+  for(var o=0;o<opts.length;o++){
+    html+='<button class="choice" data-e="'+opts[o]+'" onclick="juniorPick(this,\''+opts[o]+'\')">'+opts[o]+'</button>';
+  }
+  html+='</div><div id="junior-foot" style="min-height:60px"></div>';
+  area.innerHTML=html;
+  setTimeout(function(){ speak(w.text); },350);
+}
+function juniorPick(btn,emoji){
+  if(state.answered)return;
+  var w=state.words[state.wordIdx];
+  if(emoji===w.emoji){
+    state.answered=true;
+    btn.classList.add("right");
+    var coins=BASE_COIN+FIRSTTRY_BON;
+    awardCoins(coins); state.levelCoins+=coins; state.levelStars.push(5);
+    cheer("🎉"); confetti();
+    document.getElementById("junior-foot").innerHTML=
+      '<div class="feedback fb-good">Bravo! '+w.text+' = '+w.hint+' 🪙 +'+coins+'</div>'
+      +'<div class="row" style="margin-top:10px">'
+      +'<button class="btn listen" onclick="speak(state.words[state.wordIdx].text)">🔊</button>'
+      +'<button class="btn mic" onclick="juniorSpeak(this)">🎤 Prova a dirlo!</button>'
+      +'<button class="btn next" onclick="nextWord()">'+(state.wordIdx+1>=5?'Fine ✅':'Avanti ▶')+'</button>'
+      +'</div>';
+  } else {
+    btn.classList.add("wrong");
+    setTimeout(function(){ btn.classList.remove("wrong"); },450);
+    speak(w.text);
+  }
+}
+function juniorSpeak(btn){
+  btn.disabled=true; btn.textContent="🎤 ...";
+  listen(state.words[state.wordIdx].text, function(n){ if(n>0)btn.textContent="🎤 "+n; }, function(stars,msg){
+    if(stars==="denied"){ btn.textContent="🎤 Permetti il microfono"; btn.disabled=false; return; }
+    if(stars===null){ btn.textContent="🎤 Riprova"; btn.disabled=false; return; }
+    var bonus=stars>=4?SPEAK_BON_HI:SPEAK_BON_MD;
+    awardCoins(bonus); state.levelCoins+=bonus;
+    cheer("⭐"); 
+    var foot=document.getElementById("junior-foot");
+    foot.innerHTML='<div class="feedback fb-good">'+(msg||"Bravo!")+' 🪙 +'+bonus+'</div>'
+      +'<div class="row" style="margin-top:10px"><button class="btn next" onclick="nextWord()">'+(state.wordIdx+1>=5?'Fine ✅':'Avanti ▶')+'</button></div>';
   });
 }
 
-function renderWord() {
-  var w = state.words[state.wordIdx];
-  if (!w) return;
-  document.getElementById("word-card").style.display    = "block";
-  document.getElementById("word-emoji").textContent     = w.emoji;
-  document.getElementById("word-text").textContent      = w.text;
-  document.getElementById("word-text").style.fontSize   = w.text.length > 15 ? "22px" : "36px";
-  document.getElementById("word-hint").textContent      = w.hint;
-  document.getElementById("play-info").textContent      = "Level " + state.level + " · Word " + (state.wordIdx + 1) + "/5";
-  document.getElementById("btn-next-word").textContent  = (state.wordIdx + 1 >= 5) ? "Finish ✅" : "Next →";
-  setRecState("idle");
-  updateProgress();
+/* ---- EXPLORER / ADVANCED: leggi e prova ---- */
+function renderReader(){
+  var w=state.words[state.wordIdx];
+  var big=w.text.length>16?"26px":"40px";
+  var area=document.getElementById("play-area");
+  area.innerHTML=
+    '<div class="card">'
+    +'<div class="wordmoji">'+w.emoji+'</div>'
+    +'<div class="wordtext" style="font-size:'+big+'">'+w.text+'</div>'
+    +'<div class="wordhint">'+w.hint+'</div>'
+    +'<div class="row" style="margin-top:16px"><button class="btn listen" onclick="speak(state.words[state.wordIdx].text)">🔊 Ascolta</button></div>'
+    +'<div id="read-foot" style="margin-top:14px"></div>'
+    +'</div>'
+    +'<div class="row" style="width:100%;max-width:480px">'
+    +'<button class="btn mic" style="flex:1" onclick="readerSpeak()">🎤 Prova a dirlo</button>'
+    +'<button class="btn next" style="flex:1" onclick="readerNext()">'+(state.wordIdx+1>=5?'Fine ✅':'Avanti ▶')+'</button>'
+    +'</div>';
+  setTimeout(function(){ speak(w.text); },350);
 }
-
-function updateProgress() {
-  document.getElementById("progress-fill").style.width = (state.wordIdx / 5 * 100) + "%";
-  var r = document.getElementById("word-results");
-  r.innerHTML = "";
-  for (var i = 0; i < 5; i++) {
-    var s = document.createElement("span");
-    s.style.fontSize = "14px";
-    s.textContent = i < state.results.length ? (state.results[i] >= 4 ? "✅" : "❌") : "⬜";
-    r.appendChild(s);
-  }
-}
-
-function setRecState(s) {
-  var ids = ["idle", "recording", "loading", "done"];
-  for (var i = 0; i < ids.length; i++) {
-    var el = document.getElementById("rec-" + ids[i]);
-    if (el) el.style.display = (ids[i] === s) ? "block" : "none";
-  }
-}
-
-// ── MICROFONO ─────────────────────────────────────────────────────────────
-function startRecord() {
-  unlockAudio();
-  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    document.getElementById("mic-unsupported").style.display = "block";
-    document.getElementById("word-card").style.display       = "none";
-    return;
-  }
-
-  // Avvia il riconoscimento subito, poi mostra countdown visivo
-  var rec      = new SR();
-  rec.lang     = "en-US";
-  rec.interimResults   = false;
-  rec.maxAlternatives  = 5;
-  rec.continuous       = false;
-  var finished   = false;
-  var gotResult  = false;   // true solo se onresult ha sparato
-  var safetyTimer;
-
-  function finish(alts) {
-    if (finished) return;
-    finished = true;
-    clearTimeout(safetyTimer);
-    if (!alts || alts.length === 0) {
-      // Nessun risultato — mostra messaggio e lascia riprovare senza penalità
-      setRecState("idle");
-      var box = document.getElementById("rec-recording");
-      box.textContent = "🎤 Get ready... 2";
-      // Piccolo feedback visivo non penalizzante
-      document.getElementById("word-card").style.border = "2px solid #F5C4B3";
-      setTimeout(function(){ document.getElementById("word-card").style.border = "none"; }, 800);
-      return;
-    }
-    document.getElementById("transcript-box").textContent = 'You said: "' + alts[0] + '"';
-    setRecState("loading");
-    analyse(alts, state.words[state.wordIdx].text);
-  }
-
-  rec.onresult = function(e) {
-    gotResult = true;
-    var alts = [];
-    for (var i = 0; i < e.results[0].length; i++) alts.push(e.results[0][i].transcript.trim());
-    finish(alts);
-  };
-
-  rec.onerror = function(e) {
-    if (e.error === "not-allowed") {
-      document.getElementById("mic-denied").style.display = "block";
-      document.getElementById("word-card").style.display  = "none";
-      finished = true; clearTimeout(safetyTimer);
-    } else if (e.error === "no-speech") {
-      // no-speech è normale — non penalizzare, torna a idle
-      finish([]);
-    } else {
-      finish([]);
-    }
-  };
-
-  // onend: scatta sempre alla fine del riconoscimento.
-  // Se NON abbiamo ancora un risultato, riavvia automaticamente
-  // invece di penalizzare (su mobile onend arriva spesso prima di onresult)
-  rec.onend = function() {
-    if (!gotResult && !finished) {
-      // Riavvio silenzioso — l'utente non se ne accorge
-      finished = true;
-      clearTimeout(safetyTimer);
-      try {
-        var rec2 = new SR();
-        rec2.lang = "en-US"; rec2.interimResults = false; rec2.maxAlternatives = 5; rec2.continuous = false;
-        var f2 = false;
-        rec2.onresult = function(e2) {
-          f2 = true;
-          var alts2 = [];
-          for (var i = 0; i < e2.results[0].length; i++) alts2.push(e2.results[0][i].transcript.trim());
-          if (alts2.length) {
-            document.getElementById("transcript-box").textContent = 'You said: "' + alts2[0] + '"';
-            setRecState("loading");
-            analyse(alts2, state.words[state.wordIdx].text);
-          } else { setRecState("idle"); }
-        };
-        rec2.onerror = function() { if (!f2) setRecState("idle"); };
-        rec2.onend   = function() { if (!f2) setRecState("idle"); };
-        rec2.start();
-        // Safety per il secondo tentativo
-        setTimeout(function(){ try{ rec2.stop(); }catch(e){} }, 8000);
-      } catch(e) { setRecState("idle"); }
-    }
-  };
-
-  try { rec.start(); } catch(e) { finish([]); return; }
-  // Safety timer più lungo per mobile/tablet lenti
-  safetyTimer = setTimeout(function() {
-    try { rec.stop(); } catch(e) {}
-    finish([]);
-  }, 12000);
-
-  // Countdown visivo (il mic è già attivo)
-  setRecState("recording");
-  var box       = document.getElementById("rec-recording");
-  var countdown = 2;
-  box.textContent = "🎤 Get ready... " + countdown;
-  var timer = setInterval(function() {
-    countdown--;
-    if (countdown > 0) {
-      box.textContent = "🎤 Get ready... " + countdown;
-    } else {
-      clearInterval(timer);
-      box.textContent = "🔴 Speak now!";
-    }
-  }, 1000);
-}
-
-function retryMic() {
-  document.getElementById("mic-denied").style.display = "none";
-  document.getElementById("word-card").style.display  = "block";
-}
-
-function starsHTML(n) {
-  var s = "";
-  for (var i = 0; i < 5; i++) s += '<span style="opacity:' + (i < n ? 1 : 0.15) + '">⭐</span>';
-  return s;
-}
-
-// ── ANALISI PRONUNCIA ─────────────────────────────────────────────────────
-function analyse(alts, target) {
-  var age    = state.mode === "baby" ? "5" : "10";
-  var prompt = 'You are a friendly English pronunciation coach for a ' + age + ' year old Italian child.\n'
-    + 'Target: "' + target + '"\nSpeech engine alternatives: ' + JSON.stringify(alts) + '\n'
-    + 'Be firm but fair: award 4 stars for clearly understandable pronunciation even with Italian accent. '
-    + 'Reserve 5 stars for near-native. Give 3 stars if recognizable but quite off.\n'
-    + 'Stars: 1=incomprehensible, 2=very wrong, 3=recognizable but quite off, 4=good (minor accent ok), 5=near-native.\n'
-    + 'Respond ONLY with JSON (no markdown):\n'
-    + '{"stars":N,"feedback":"<max 18 words, child-friendly>","tip":"<one short tip if stars<4, else empty>"}';
-
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-app-token": APP_TOKEN },
-    body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 1000, messages: [{ role: "user", content: prompt }] })
-  })
-  .then(function(res) { return res.json(); })
-  .then(function(data) {
-    var txt = "";
-    for (var i = 0; i < data.content.length; i++) {
-      if (data.content[i].type === "text") { txt = data.content[i].text; break; }
-    }
-    txt = txt.replace(/```json/g, "").replace(/```/g, "").trim();
-    var p = JSON.parse(txt);
-    var s = Math.max(1, Math.min(5, p.stars || 1));
-    showFeedback(s, (p.feedback || "Good try!") + (p.tip ? " 💡 " + p.tip : ""));
-  })
-  .catch(function() {
-    var said  = alts[0].toLowerCase();
-    var tgt   = target.toLowerCase();
-    var match = said.indexOf(tgt) > -1 || tgt.indexOf(said) > -1;
-    showFeedback(match ? 4 : 2, match ? "Great pronunciation! 🌟" : 'Almost! Try saying "' + target + '" again.');
+var _readerRewarded=false;
+function readerSpeak(){
+  var foot=document.getElementById("read-foot");
+  foot.innerHTML='<div class="reczone" id="rec-box">🎤 Pronto…</div>';
+  listen(state.words[state.wordIdx].text, function(n){
+    var b=document.getElementById("rec-box"); if(b)b.textContent=n>0?("🎤 Pronto… "+n):"🔴 Parla ora!";
+  }, function(stars,msg){
+    if(stars==="denied"){ foot.innerHTML='<div class="feedback fb-soft">Per usare la voce, permetti il microfono nel browser. Puoi comunque andare avanti ▶</div>'; return; }
+    if(stars===null){ foot.innerHTML='<div class="feedback fb-soft">Non ti ho sentito bene 🙉 Riprova o vai avanti ▶</div>'; return; }
+    var bonus=stars>=4?SPEAK_BON_HI:SPEAK_BON_MD;
+    awardCoins(bonus); state.levelCoins+=bonus; _readerRewarded=true;
+    if(!state.levelStars[state.wordIdx]) state.levelStars[state.wordIdx]=stars;
+    cheer(stars>=4?"⭐":"👍");
+    foot.innerHTML='<div class="stars">'+starStr(stars)+'</div><div class="feedback '+(stars>=4?'fb-good':'fb-ok')+'">'+(msg||"Bravo!")+' 🪙 +'+bonus+'</div>';
   });
 }
-
-function showFeedback(s, msg) {
-  state.results.push(s);
-  updateProgress();
-  document.getElementById("stars-row").innerHTML    = starsHTML(s);
-  var fb = document.getElementById("feedback-box");
-  fb.textContent = msg;
-  fb.className   = "feedback-box " + (s >= 4 ? "feedback-good" : s >= 2 ? "feedback-mid" : "feedback-bad");
-  document.getElementById("btn-next-word").textContent = (state.wordIdx + 1 >= 5) ? "Finish ✅" : "Next →";
-  setRecState("done");
+function readerNext(){
+  // ogni parola completata vale le monete base (una volta)
+  if(!state.levelStars[state.wordIdx]){ state.levelStars[state.wordIdx]=0; awardCoins(BASE_COIN); state.levelCoins+=BASE_COIN; }
+  else { awardCoins(BASE_COIN); state.levelCoins+=BASE_COIN; }
+  _readerRewarded=false;
+  nextWord();
 }
 
-function retryWord() {
-  if (state.results.length > state.wordIdx) state.results.splice(state.wordIdx, 1);
-  document.getElementById("transcript-box").textContent = "";
-  document.getElementById("stars-row").innerHTML        = "";
-  document.getElementById("feedback-box").textContent   = "";
-  updateProgress();
-  setRecState("idle");
-}
+function starStr(n){ var s=""; for(var i=0;i<5;i++)s+=(i<n?"⭐":"☆"); return s; }
 
-function nextWord() {
-  if (state.wordIdx + 1 >= 5) { showResult(); return; }
+function nextWord(){
+  if(state.wordIdx+1>=5){ finishLevel(); return; }
   state.wordIdx++;
-  renderWord();
+  document.getElementById("play-coins").textContent=state.coins;
+  renderRound();
 }
 
-// ── RISULTATO ─────────────────────────────────────────────────────────────
-function showResult() {
-  var good = 0, total = 0;
-  for (var i = 0; i < state.results.length; i++) {
-    if (state.results[i] >= 4) good++;
-    total += state.results[i];
-  }
-  var passed = good >= 4;
-  if (passed && state.level >= state.unlockedUpTo) {
-    state.unlockedUpTo = Math.min(50, state.level + 1);
-  }
-  if (passed) {
-    state.leaderboard.push({ name: state.playerName, mode: state.mode, level: state.level, score: total, date: new Date().toLocaleDateString("it-IT") });
-    state.leaderboard.sort(function(a, b) { return b.level - a.level || b.score - a.score; });
-    if (state.leaderboard.length > 20) state.leaderboard = state.leaderboard.slice(0, 20);
-  }
-  saveAll();
-
-  document.getElementById("result-emoji").textContent = passed ? "🏆" : "💪";
-  document.getElementById("result-title").textContent = passed ? "Level Passed!" : "Keep Trying!";
-  document.getElementById("result-sub").textContent   = passed
-    ? "Level " + (state.level + 1) + " is now unlocked! 🔓"
-    : "You need 4/5 words. You got " + good + "/5.";
-
-  var sc = document.getElementById("result-score");
-  sc.textContent    = good + "/5 correct · Score: " + total + "/25";
-  sc.style.background = passed ? "#EAF3DE" : "#FAECE7";
-  sc.style.color      = passed ? "#3B6D11"  : "#993C1D";
-
-  var dots = document.getElementById("result-dots");
-  dots.innerHTML = "";
-  for (var i = 0; i < state.results.length; i++) {
-    var d = document.createElement("div");
-    d.style.textAlign = "center";
-    d.innerHTML = (state.results[i] >= 4 ? "✅" : "❌") + "<div style='font-size:11px;color:#aaa'>" + state.results[i] + "⭐</div>";
-    dots.appendChild(d);
-  }
-
-  var nb = document.getElementById("btn-next-level");
-  if (passed && state.level < 50) {
-    nb.style.display  = "block";
-    nb.textContent    = "Next Level " + (state.level + 1) + " →";
-  } else {
-    nb.style.display = "none";
-  }
+function finishLevel(){
+  // sempre avanti: completare il livello sblocca il successivo
+  var inf=modeInfo(state.mode);
+  if(state.level>=state.unlockedUpTo && state.level<inf.max){ state.unlockedUpTo=state.level+1; saveProgress(); }
+  var avg=0; for(var i=0;i<state.levelStars.length;i++)avg+=state.levelStars[i]; avg=state.levelStars.length?avg/state.levelStars.length:0;
+  document.getElementById("res-emoji").textContent = avg>=4?"🏆":(avg>=2?"🎉":"💪");
+  document.getElementById("res-title").textContent = "Livello "+state.level+" finito!";
+  document.getElementById("res-coins").textContent = state.levelCoins;
+  document.getElementById("res-stars").textContent = state.levelStars.length?starStr(Math.round(avg)):"";
+  var next=document.getElementById("res-next");
+  if(state.level<inf.max){ next.style.display="block"; next.textContent="Livello "+(state.level+1)+" ▶"; document.getElementById("res-sub").textContent="Hai sbloccato il livello "+(state.level+1)+"! 🔓"; }
+  else { next.style.display="none"; document.getElementById("res-sub").textContent="Hai finito tutti i livelli! 🌟"; }
+  confetti();
   showScreen("result");
 }
+function nextLevel(){ startLevel(state.level+1); }
 
-function nextLevel() { startLevel(state.level + 1); }
-function retryLevel() { startLevel(state.level); }
-
-// ── LEADERBOARD ───────────────────────────────────────────────────────────
-function renderLeaderboard() {
-  // Mostra risultati di TUTTE le modalità per questo giocatore
-  var allEntries  = [];
-  var savedMode   = state.mode;
-  var modes       = ["baby", "explorer"];
-  modes.forEach(function(m) {
-    state.mode = m;
-    var lb = sGet(mkKey("lb"));
-    if (lb) {
-      try {
-        var entries = JSON.parse(lb);
-        entries.forEach(function(e) { if (!e.mode) e.mode = m; });
-        allEntries = allEntries.concat(entries);
-      } catch(e) {}
-    }
+/* ============================ COINS / STICKERS ============================ */
+function awardCoins(n){ state.coins+=n; saveCoins();
+  var a=document.getElementById("play-coins"); if(a)a.textContent=state.coins;
+}
+function renderCollection(){
+  document.getElementById("col-coins").textContent=state.coins;
+  var sb=document.getElementById("surprise-btn");
+  var allOwned=state.stickers.length>=STICKERS.length;
+  sb.disabled = state.coins<SURPRISE_COST || allOwned;
+  sb.style.opacity = sb.disabled?.5:1;
+  sb.textContent = allOwned?"✨ Collezione completa!":("🎁 Apri sorpresa — "+SURPRISE_COST+" 🪙");
+  var g=document.getElementById("sticker-grid"); g.innerHTML="";
+  STICKERS.forEach(function(s){
+    var owned=state.stickers.indexOf(s)>-1;
+    var d=document.createElement("div"); d.className="st"+(owned?"":" locked");
+    d.textContent=owned?s:"❓";
+    g.appendChild(d);
   });
-  state.mode = savedMode;
-  allEntries.sort(function(a, b) { return b.level - a.level || b.score - a.score; });
-  allEntries = allEntries.slice(0, 20);
-
-  var list = document.getElementById("lb-list");
-  if (!allEntries.length) {
-    list.innerHTML = '<div style="text-align:center;color:#aaa;margin-top:60px;font-size:18px">No scores yet!<br>Complete a level to appear here 🌟</div>';
-    return;
-  }
-  var medals = ["🥇", "🥈", "🥉"], html = "";
-  for (var i = 0; i < allEntries.length; i++) {
-    var e = allEntries[i];
-    var modeLabel = e.mode === "baby" ? "🐣 Baby" : "🚀 Explorer";
-    html += '<div class="lb-entry">'
-      + '<div style="font-size:22px;min-width:32px;text-align:center">' + (medals[i] || (i + 1) + ".") + '</div>'
-      + '<div style="flex:1"><div style="font-weight:700;color:#534AB7;font-size:16px">' + e.name + '</div>'
-      + '<div style="font-size:12px;color:#aaa">' + modeLabel + " · " + e.date + '</div></div>'
-      + '<div style="text-align:right"><div style="font-weight:800;color:#534AB7;font-size:18px">Lv ' + e.level + '</div>'
-      + '<div style="font-size:12px;color:#888">Score: ' + e.score + '</div></div></div>';
-  }
-  list.innerHTML = html;
+}
+function openSurprise(){
+  if(state.coins<SURPRISE_COST)return;
+  var left=STICKERS.filter(function(s){return state.stickers.indexOf(s)<0;});
+  if(!left.length)return;
+  state.coins-=SURPRISE_COST; saveCoins();
+  var won=left[Math.floor(Math.random()*left.length)];
+  state.stickers.push(won); saveStickers();
+  cheer(won); confetti();
+  renderCollection();
 }
 
-function togglePin() {
-  var p = document.getElementById("pin-panel");
-  p.style.display = p.style.display === "none" ? "block" : "none";
-  document.getElementById("pin-error").style.display = "none";
+/* ============================ LEADERBOARD ============================ */
+function renderLeaderboard(){
+  var roster=getRoster();
+  var rows=roster.map(function(p){
+    var pc=parseInt(sget("ef_coins_"+slug(p.name)))||0;
+    var best=0, modes=["junior","explorer","advanced"];
+    modes.forEach(function(m){ var u=parseInt(sget("ef_prog_"+slug(p.name)+"_"+m))||1; if(u>best)best=u; });
+    return {name:p.name,avatar:p.avatar,coins:pc,best:best};
+  });
+  rows.sort(function(a,b){ return b.coins-a.coins || b.best-a.best; });
+  var el=document.getElementById("lb-list");
+  if(!rows.length){ el.innerHTML='<p class="hintline" style="margin-top:40px;font-size:16px">Ancora nessun giocatore 🌟</p>'; return; }
+  var medals=["🥇","🥈","🥉"];
+  el.innerHTML=rows.map(function(r,i){
+    return '<div class="lbrow"><div class="rank">'+(medals[i]||(i+1))+'</div>'
+      +'<div class="lav">'+r.avatar+'</div><div class="lname">'+r.name+'</div>'
+      +'<div class="lstat">🪙 '+r.coins+'<small>liv. max '+r.best+'</small></div></div>';
+  }).join("");
+}
+function toggleAdmin(){ var p=document.getElementById("admin-panel"); p.style.display=p.style.display==="none"?"block":"none"; document.getElementById("admin-err").style.display="none"; }
+function adminReset(){
+  if(document.getElementById("admin-pin").value!==ADMIN_PIN){ document.getElementById("admin-err").style.display="block"; return; }
+  var keys=[]; for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k&&k.indexOf("ef_")===0)keys.push(k); }
+  keys.forEach(function(k){ localStorage.removeItem(k); });
+  state.player=null; state.coins=0; state.stickers=[]; state.unlockedUpTo=1;
+  toggleAdmin(); renderRoster(); showScreen("splash");
 }
 
-function doReset() {
-  if (document.getElementById("pin-input").value === SUPERUSER_PIN) {
-    var toRemove = [];
-    for (var i = 0; i < localStorage.length; i++) {
-      var k = localStorage.key(i);
-      if (k && k.indexOf("ef_") === 0) toRemove.push(k);
-    }
-    toRemove.forEach(function(k) { localStorage.removeItem(k); });
-    state.leaderboard  = [];
-    state.unlockedUpTo = 1;
-    document.getElementById("pin-error").style.display = "none";
-    togglePin();
-    renderLeaderboard();
-  } else {
-    document.getElementById("pin-error").style.display = "block";
+/* ============================ CELEBRATION ============================ */
+function confetti(){
+  var box=document.getElementById("celebrate");
+  var em=["🎉","⭐","🪙","✨","🌟","💫"];
+  for(var i=0;i<16;i++){
+    (function(){
+      var s=document.createElement("div"); s.className="conf"; s.textContent=em[Math.floor(Math.random()*em.length)];
+      s.style.left=Math.random()*100+"vw"; s.style.animationDelay=(Math.random()*.3)+"s"; s.style.fontSize=(20+Math.random()*18)+"px";
+      box.appendChild(s); setTimeout(function(){ if(s.parentNode)s.parentNode.removeChild(s); },1800);
+    })();
   }
 }
+function cheer(emoji){
+  var c=document.createElement("div"); c.className="cheer"; c.textContent=emoji;
+  document.body.appendChild(c); setTimeout(function(){ if(c.parentNode)c.parentNode.removeChild(c); },1000);
+}
 
-// ── INIT ──────────────────────────────────────────────────────────────────
-loadPlayerName();
+/* ============================ INIT ============================ */
+renderRoster();
 </script>
 </body>
 </html>
