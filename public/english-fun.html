@@ -460,13 +460,13 @@ function showScreen(id){
   var ss=document.querySelectorAll(".screen");
   for(var i=0;i<ss.length;i++)ss[i].classList.remove("active");
   document.getElementById("s-"+id).classList.add("active");
-  window.scrollTo(0,0);
-}
-function go(id){
+  if(id==="splash")renderRoster();
+  if(id==="levels")renderLevels();        // ri-disegna sempre: mostra i livelli appena sbloccati
   if(id==="collection")renderCollection();
   if(id==="leaderboard")renderLeaderboard();
-  showScreen(id);
+  window.scrollTo(0,0);
 }
+function go(id){ showScreen(id); }
 
 /* ============================ SPLASH / PLAYERS ============================ */
 function renderRoster(){
@@ -524,6 +524,7 @@ function pickMode(m){
   showScreen("levels");
 }
 function renderLevels(){
+  if(!state.mode)return;
   var inf=modeInfo(state.mode);
   document.getElementById("lv-title").textContent=inf.title;
   document.getElementById("lv-sub").textContent=inf.sub;
@@ -633,7 +634,7 @@ function renderJunior(){
   }
   html+='</div><div id="junior-foot" style="min-height:60px"></div>';
   area.innerHTML=html;
-  setTimeout(function(){ speak(w.text); },350);
+  // niente autoplay: il bambino preme 🔊 Ascolta quando e' pronto
 }
 function juniorPick(btn,emoji){
   if(state.answered)return;
@@ -688,7 +689,7 @@ function renderReader(){
     +'<button class="btn mic" style="flex:1" onclick="readerSpeak()">🎤 Prova a dirlo</button>'
     +'<button class="btn next" style="flex:1" onclick="readerNext()">'+(state.wordIdx+1>=5?'Fine ✅':'Avanti ▶')+'</button>'
     +'</div>';
-  setTimeout(function(){ speak(w.text); },350);
+  // niente autoplay: si ascolta premendo 🔊 Ascolta
 }
 var _readerRewarded=false;
 function readerSpeak(){
