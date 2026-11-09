@@ -292,6 +292,7 @@ var FIRSTTRY_BON = 3;   // junior: azzeccata al primo colpo
 var SPEAK_BON_HI = 6;   // pronuncia ottima (4-5 stelle)
 var SPEAK_BON_MD = 3;   // pronuncia ok (3 stelle)
 var SURPRISE_COST= 20;
+var PASS_STARS   = 4;   // Explorer/Advanced: stelle minime per passare (metti 5 per "solo quasi-madrelingua")
 
 var AVATARS  = ["🦊","🐱","🐶","🐸","🦁","🐼","🐯","🐵","🦄","🐧","🐙","🦋","🐢","🦖","🐬","🐝"];
 var STICKERS = ["🦄","🐉","🦖","🐙","🦋","🦜","🐳","🦊","🐨","🦁","🐧","🦩","🦚","🐢","🦉","🐬","🌈","⭐","🚀","🏆"];
@@ -334,6 +335,15 @@ function loadProgress(){
 function saveProgress(){
   var k="ef_prog_"+slug(state.player.name)+"_"+state.mode;
   sset(k, String(state.unlockedUpTo));
+}
+// memoria delle parole gia' viste, per non ripeterle tra i livelli
+function usedKey(){ return "ef_used_"+slug(state.player?state.player.name:"x")+"_"+state.mode; }
+function getUsed(){ var u=sget(usedKey()); if(!u)return[]; try{return JSON.parse(u)||[];}catch(e){return[];} }
+function addUsed(words){
+  var u=getUsed();
+  words.forEach(function(w){ var lw=(w||"").toLowerCase(); if(lw&&u.indexOf(lw)<0)u.push(lw); });
+  if(u.length>80)u=u.slice(u.length-80);   // tieni le ultime 80
+  sset(usedKey(), JSON.stringify(u));
 }
 
 /* ============================ AUDIO ============================ */
@@ -400,41 +410,39 @@ function speak(text){
 }
 
 /* ============================ SPEECH RECOGNITION (bonus, mai bloccante) ============================ */
-// cb(stars, saidText) ; stars=null se non ha sentito (nessuna penalita')
-function listen(target, onCountdown, cb){
+// cb(stars|null|"denied") ; onState("listening"|"checking")
+var _activeRec=null;
+function stopRecognition(){
+  if(_activeRec){
+    try{ _activeRec.onresult=_activeRec.onerror=_activeRec.onend=null; }catch(e){}
+    try{ _activeRec.abort(); }catch(e){}
+    _activeRec=null;
+  }
+}
+function listen(target, onState, cb){
   unlockAudio();
+  stopRecognition();                 // mai due istanze insieme (evita lo stallo)
   var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){ cb(null); return; }
-  var rec=new SR();
+  var rec; try{ rec=new SR(); }catch(e){ cb(null); return; }
+  _activeRec=rec;
   rec.lang="en-US"; rec.interimResults=false; rec.maxAlternatives=5; rec.continuous=false;
-  var done=false, got=false, timer;
-  function finish(alts){
-    if(done)return; done=true; clearTimeout(timer);
-    if(!alts||!alts.length){ cb(null); return; }
-    analyse(alts, target, cb);
-  }
-  rec.onresult=function(e){ got=true; var a=[]; for(var i=0;i<e.results[0].length;i++)a.push(e.results[0][i].transcript.trim()); finish(a); };
-  rec.onerror=function(e){ if(e.error==="not-allowed"){ done=true; clearTimeout(timer); cb("denied"); } else finish([]); };
-  rec.onend=function(){
-    if(!got&&!done){
-      // mobile: onend prima di onresult -> un retry silenzioso
-      done=true; clearTimeout(timer);
-      try{
-        var r2=new SR(); r2.lang="en-US"; r2.interimResults=false; r2.maxAlternatives=5; r2.continuous=false;
-        var g2=false;
-        r2.onresult=function(e2){ g2=true; var a2=[]; for(var i=0;i<e2.results[0].length;i++)a2.push(e2.results[0][i].transcript.trim()); if(a2.length)analyse(a2,target,cb); else cb(null); };
-        r2.onerror=function(){ if(!g2)cb(null); };
-        r2.onend=function(){ if(!g2)cb(null); };
-        r2.start(); setTimeout(function(){try{r2.stop();}catch(e){}},8000);
-      }catch(e){ cb(null); }
-    }
+  var done=false, timer=null;
+  function cleanup(){ if(timer){clearTimeout(timer);timer=null;} if(_activeRec===rec)_activeRec=null; }
+  function fail(res){ if(done)return; done=true; cleanup(); try{rec.abort();}catch(e){} cb(res); }
+  rec.onresult=function(e){
+    if(done)return; done=true; cleanup();
+    var a=[]; for(var i=0;i<e.results[0].length;i++)a.push(e.results[0][i].transcript.trim());
+    try{rec.abort();}catch(e){}
+    if(!a.length){ cb(null); return; }
+    if(onState)onState("checking");
+    analyse(a,target,cb);
   };
-  try{ rec.start(); }catch(e){ cb(null); return; }
-  timer=setTimeout(function(){ try{rec.stop();}catch(e){} finish([]); },12000);
-  if(onCountdown){
-    var n=2; onCountdown(n);
-    var iv=setInterval(function(){ n--; if(n>0)onCountdown(n); else{ clearInterval(iv); onCountdown(0); } },1000);
-  }
+  rec.onerror=function(e){ fail(e&&e.error==="not-allowed"?"denied":null); };
+  rec.onend=function(){ fail(null); };   // niente retry automatico: più stabile
+  if(onState)onState("listening");
+  try{ rec.start(); }catch(e){ fail(null); return; }
+  timer=setTimeout(function(){ try{rec.stop();}catch(e){} },7000);
 }
 function analyse(alts, target, cb){
   var age = state.mode==="junior"?"5":(state.mode==="advanced"?"adult B1":"10");
@@ -592,9 +600,14 @@ function fetchWords(lvl){
       else guide="harder words: beautiful, strength, thousand, through.";
     } else guide="short A2 phrases: 'I like pizza', 'She is my friend', 'What time is it?', 'Let us go home'.";
   }
+  var used=getUsed();
+  var avoid = used.length ? ("Do NOT use any of these already-used words (pick fresh, different ones): "+used.slice(-50).join(", ")+".\n") : "";
   var prompt="Generate exactly 5 unique English "+(isPhrase?"phrases":"words")+" for "+who+"\n"
     +"Level "+lvl+". Topic: "+topic+". Difficulty: "+guide+"\n"
-    +"Each needs ONE emoji that clearly represents it (important: emojis must be different from each other).\n"
+    +avoid
+    +"EMOJI RULE (critical): each emoji must be the single, unmistakable, canonical picture of that exact word, so a child recognises the word from the emoji alone. "
+    +"NEVER use a loosely-related emoji: do not use a pencil emoji for 'pen', do not use a books emoji for 'desk', do not use a generic emoji for a specific word. "
+    +"Only choose words that HAVE a clear canonical emoji; if a word has no obvious emoji, choose a different word. All 5 emojis must be different from each other.\n"
     +"Seed "+seed+". Respond ONLY with a JSON array, no markdown:\n"
     +'[{"text":"...","emoji":"...","hint":"..."}] — hint = short Italian translation (max 4 words).';
   fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json","x-app-token":APP_TOKEN},
@@ -604,6 +617,7 @@ function fetchWords(lvl){
       var t=""; for(var i=0;i<d.content.length;i++){if(d.content[i].type==="text"){t=d.content[i].text;break;}}
       t=t.replace(/```json/g,"").replace(/```/g,"").trim();
       state.words=JSON.parse(t).slice(0,5);
+      addUsed(state.words.map(function(w){return w.text;}));   // ricorda le parole viste
       renderRound();
     })
     .catch(function(){
@@ -652,7 +666,7 @@ function juniorPick(btn,emoji){
       '<div class="feedback fb-good">Bravo! '+w.text+' = '+w.hint+' 🪙 +'+coins+'</div>'
       +'<div class="row" style="margin-top:10px">'
       +'<button class="btn listen" onclick="speak(state.words[state.wordIdx].text)">🔊</button>'
-      +'<button class="btn mic" onclick="juniorSpeak(this)">🎤 Prova a dirlo!</button>'
+      +'<button class="btn mic" onclick="juniorSpeak()">🎤 Prova a dirlo!</button>'
       +'<button class="btn next" onclick="nextWord()">'+(state.wordIdx+1>=5?'Fine ✅':'Avanti ▶')+'</button>'
       +'</div>';
   } else {
@@ -661,15 +675,22 @@ function juniorPick(btn,emoji){
     speak(w.text);
   }
 }
-function juniorSpeak(btn){
-  btn.disabled=true; btn.textContent="🎤 ...";
-  listen(state.words[state.wordIdx].text, function(n){ if(n>0)btn.textContent="🎤 "+n; }, function(stars,msg){
-    if(stars==="denied"){ btn.textContent="🎤 Permetti il microfono"; btn.disabled=false; return; }
-    if(stars===null){ btn.textContent="🎤 Riprova"; btn.disabled=false; return; }
+function juniorNextRow(){
+  return '<div class="row" style="margin-top:10px">'
+    +'<button class="btn mic" onclick="juniorSpeak()">🎤 Riprova</button>'
+    +'<button class="btn next" onclick="nextWord()">'+(state.wordIdx+1>=5?'Fine ✅':'Avanti ▶')+'</button></div>';
+}
+function juniorSpeak(){
+  var foot=document.getElementById("junior-foot");
+  foot.innerHTML='<div class="reczone" id="j-rec">🔴 Parla ora! 🎤</div>';
+  listen(state.words[state.wordIdx].text, function(stage){
+    var b=document.getElementById("j-rec"); if(!b)return;
+    if(stage==="checking"){ b.textContent="⏳ Controllo…"; b.style.background="#EEF2FB"; b.style.color="#3a5a8a"; }
+  }, function(stars,msg){
+    if(stars==="denied"){ foot.innerHTML='<div class="feedback fb-soft">Permetti il microfono per parlare 🎤</div>'+juniorNextRow(); return; }
+    if(stars===null){ foot.innerHTML='<div class="feedback fb-soft">Non ti ho sentito 🙉 Riprova o vai avanti</div>'+juniorNextRow(); return; }
     var bonus=stars>=4?SPEAK_BON_HI:SPEAK_BON_MD;
-    awardCoins(bonus); state.levelCoins+=bonus;
-    cheer("⭐"); 
-    var foot=document.getElementById("junior-foot");
+    awardCoins(bonus); state.levelCoins+=bonus; cheer("⭐");
     foot.innerHTML='<div class="feedback fb-good">'+(msg||"Bravo!")+' 🪙 +'+bonus+'</div>'
       +'<div class="row" style="margin-top:10px"><button class="btn next" onclick="nextWord()">'+(state.wordIdx+1>=5?'Fine ✅':'Avanti ▶')+'</button></div>';
   });
@@ -688,33 +709,42 @@ function renderReader(){
     +'<div class="row" style="margin-top:16px"><button class="btn listen" onclick="speak(state.words[state.wordIdx].text)">🔊 Ascolta</button></div>'
     +'<div id="read-foot" style="margin-top:14px"></div>'
     +'</div>'
-    +'<div class="row" style="width:100%;max-width:480px">'
-    +'<button class="btn mic" style="flex:1" onclick="readerSpeak()">🎤 Prova a dirlo</button>'
-    +'<button class="btn next" style="flex:1" onclick="readerNext()">'+(state.wordIdx+1>=5?'Fine ✅':'Avanti ▶')+'</button>'
+    +'<div class="row" style="width:100%;max-width:480px" id="read-actions">'
+    +'<button class="btn mic big-mic" onclick="readerSpeak()">🎤 Dillo per passare</button>'
     +'</div>';
-  // niente autoplay: si ascolta premendo 🔊 Ascolta
+  // niente autoplay: si ascolta premendo 🔊 Ascolta.
+  // Explorer/Advanced: per avanzare serve una buona pronuncia (gate), altrimenti si ripete.
 }
-var _readerRewarded=false;
 function readerSpeak(){
   var foot=document.getElementById("read-foot");
-  foot.innerHTML='<div class="reczone" id="rec-box">🎤 Pronto…</div>';
-  listen(state.words[state.wordIdx].text, function(n){
-    var b=document.getElementById("rec-box"); if(b)b.textContent=n>0?("🎤 Pronto… "+n):"🔴 Parla ora!";
+  foot.innerHTML='<div class="reczone" id="rec-box">🔴 Parla ora! 🎤</div>';
+  listen(state.words[state.wordIdx].text, function(stage){
+    var b=document.getElementById("rec-box"); if(b&&stage==="checking"){ b.textContent="⏳ Controllo…"; b.style.background="#EEF2FB"; b.style.color="#3a5a8a"; }
   }, function(stars,msg){
-    if(stars==="denied"){ foot.innerHTML='<div class="feedback fb-soft">Per usare la voce, permetti il microfono nel browser. Puoi comunque andare avanti ▶</div>'; return; }
-    if(stars===null){ foot.innerHTML='<div class="feedback fb-soft">Non ti ho sentito bene 🙉 Riprova o vai avanti ▶</div>'; return; }
-    var bonus=stars>=4?SPEAK_BON_HI:SPEAK_BON_MD;
-    awardCoins(bonus); state.levelCoins+=bonus; _readerRewarded=true;
-    if(!state.levelStars[state.wordIdx]) state.levelStars[state.wordIdx]=stars;
-    cheer(stars>=4?"⭐":"👍");
-    foot.innerHTML='<div class="stars">'+starStr(stars)+'</div><div class="feedback '+(stars>=4?'fb-good':'fb-ok')+'">'+(msg||"Bravo!")+' 🪙 +'+bonus+'</div>';
+    var actions=document.getElementById("read-actions");
+    if(stars==="denied"){
+      // senza microfono non si puo' valutare: non si puo' imporre il gate -> consenti di proseguire
+      foot.innerHTML='<div class="feedback fb-soft">Senza microfono non posso valutare la pronuncia: permettilo nel browser, oppure prosegui.</div>';
+      if(actions)actions.innerHTML='<button class="btn mic" style="flex:1" onclick="readerSpeak()">🎤 Riprova</button><button class="btn next" style="flex:1" onclick="readerAdvance()">Avanti ▶</button>';
+      return;
+    }
+    if(stars===null){ foot.innerHTML='<div class="feedback fb-soft">Non ti ho sentito 🙉 Premi 🎤 e riprova</div>'; return; }
+    if(stars>=PASS_STARS){
+      var gain=BASE_COIN+(stars>=5?SPEAK_BON_HI:SPEAK_BON_MD);
+      awardCoins(gain); state.levelCoins+=gain;
+      state.levelStars[state.wordIdx]=stars;
+      cheer("⭐");
+      foot.innerHTML='<div class="stars">'+starStr(stars)+'</div><div class="feedback fb-good">'+(msg||"Bravo!")+' 🪙 +'+gain+'</div>';
+      if(actions)actions.innerHTML='<button class="btn next big-mic" onclick="readerAdvance()">'+(state.wordIdx+1>=5?'Fine ✅':'Avanti ▶')+'</button>';
+    } else {
+      // sotto soglia: deve ripetere la parola (il bottone 🎤 resta)
+      foot.innerHTML='<div class="stars">'+starStr(stars)+'</div><div class="feedback fb-ok">'+(msg||"Ci siamo quasi!")+' Servono almeno '+PASS_STARS+' ⭐ — riascolta 🔊 e riprova 💪</div>';
+    }
   });
 }
-function readerNext(){
-  // ogni parola completata vale le monete base (una volta)
-  if(!state.levelStars[state.wordIdx]){ state.levelStars[state.wordIdx]=0; awardCoins(BASE_COIN); state.levelCoins+=BASE_COIN; }
-  else { awardCoins(BASE_COIN); state.levelCoins+=BASE_COIN; }
-  _readerRewarded=false;
+function readerAdvance(){
+  // monete base solo se non gia' assegnate (caso senza microfono)
+  if(state.levelStars[state.wordIdx]===undefined){ state.levelStars[state.wordIdx]=0; awardCoins(BASE_COIN); state.levelCoins+=BASE_COIN; }
   nextWord();
 }
 
